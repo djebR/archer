@@ -27,9 +27,9 @@ function getInstances($class, $source, $parameters, $limit = 500, $sourceSimilar
 function getCBD($instance, $source, $parameters){
  
    $query = 
-   "SELECT ?p ?o
+   "SELECT ?predicate ?object
    WHERE {
-      <".$instance."> ?p ?o . 
+      <".$instance."> ?predicate ?object . 
    }";
  
     $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
@@ -75,7 +75,7 @@ $cbdAnswer = array();
 
 $instanceURL = getInstances($_REQUEST['class'], "http://dbtune.org/musicbrainz/sparql", array('query'=>'query','format'=>'json'), 5, "dbpedia");
 
-$responseArray = json_decode(request($instanceURL), true); 
+$instanceArray = json_decode(request($instanceURL), true); 
     
 /*
     - Get instances from a class, with limits
@@ -122,11 +122,11 @@ ob_end_flush();
 
         echo "<tr>";
         echo "<th scope='col'>N°</th>";
-        foreach ($responseArray["head"]["vars"] as $key => $value) {
+        foreach ($instanceArray["head"]["vars"] as $key => $value) {
             echo "<th scope='col'>".$value."</th>";
         }
         echo "<th scope='col'>Analyze</th></tr>";
-        foreach ($responseArray["results"]["bindings"] as $key => $value) {
+        foreach ($instanceArray["results"]["bindings"] as $key => $value) {
             $i = 0;
             echo "<tr><th scope='row'>".($key+1)."</th>";
             foreach ($value as $key2 => $value2) {
@@ -137,14 +137,14 @@ ob_end_flush();
                     <div class='card card-body'>";
                 
                 $cbdURL = getCBD($value2["value"], ($i==0)?"http://dbtune.org/musicbrainz/sparql":"http://dbpedia.org/sparql", array('query'=>'query','format'=>'json'));
-                $cbdAnswer[$key][$value2["value"]] = json_decode(request($cbdURL), true); 
+                $cbd = json_decode(request($cbdURL), true); 
                 echo "<table class='table'><tr><th>Predicate</th><th>Object</th></tr>";
-                foreach ($cbdAnswer[$key][$value2["value"]]["results"]["bindings"] as $key3 => $value3) {
+                foreach ($cbd as $key3 => $value3) {
                     echo "<tr>";
-                    foreach ($value3 as $key4 => $value4) {
-                        echo "<td>".$value4["value"]."</td>";
-                    }
+                        echo "<td>".$value3["predicate"]["value"]."</td>";
+                        echo "<td>".$value3["object"]["value"]."</td>";
                     echo "</tr>";
+                    $cbdAnswer[$value2["value"]][] = array("subject" => $value2["value"], "predicate" =>$value3["predicate"]["value"], "object" => $value3["object"]["value"]);
                 }
                 echo "</table>";
                 echo "</div></div></td>";
