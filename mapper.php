@@ -144,21 +144,22 @@ ob_end_flush();
                         echo "<td>".$value3["predicate"]["value"]."</td>";
                         echo "<td>".$value3["object"]["value"]."</td>";
                     echo "</tr>";
-                    $cbdAnswer[$value2["value"]][] = array("subject" => $value2["value"], "predicate" =>$value3["predicate"]["value"], "object" => $value3["object"]["value"]);
+                    $cbdAnswer[$key][] = array("subject" => $value2["value"], "predicate" =>$value3["predicate"]["value"], "object" => $value3["object"]["value"]);
+                    $fp = fopen('results/{$key2}.{$key}.json', 'w');
+                    fwrite($fp, json_encode($cbdAnswer));
+                    fclose($fp);
                 }
                 echo "</table>";
                 echo "</div></div></td>";
                 $i += 1;
             }
 
-            echo "<td>Analyze</td></tr>";
+            echo "<td><a href='analyze.php?i={$key}'>Analyze</a></td></tr>";
         }
 
 
 
-        // $fp = fopen('results.json', 'w');
-        // fwrite($fp, json_encode($cbdAnswer));
-        // fclose($fp);
+
     ?>
     </table>
 
