@@ -166,7 +166,7 @@ ob_end_flush();
                 $i += 1;
             }
 
-            echo "<td><a href='analyze.php?key={$key}' data-toggle='modal' data-target='#exampleModalCenter'>Analyze</a></td></tr>";
+            echo "<td><a class='analysis' href='#' data-key='{$key}' data-toggle='modal' data-target='#exampleModalCenter'>Analyze</a></td></tr>";
         }
 
     ?>
@@ -190,10 +190,34 @@ ob_end_flush();
     </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 
+    <script>
+
+        $('.analysis').on('click', function(){
+            var that = $(this);
+            var key = $(this).data("key");
+            var firstTriple = $(this).parent().siblings('td').children('a:first');
+            var secondTriple = $(this).parent().siblings('td').children('a:last');
+
+            $.ajax({
+                type: "get",
+                url: "analyze.php?key=" + key,
+                data: "data",
+                dataType: "json",
+                success: function (response) {
+                    firstTriple.html(firstTriple.html() + "<span class='badge badge-danger float-right'>"+ response.nodesFrom + "</span>");
+                    secondTriple.html(secondTriple.html() + "<span class='badge badge-danger float-right'>"+ response.nodesTo + "</span>");
+                    that.html(that.html() + "<span class='badge badge-success float-right'>"+ response.links + "</span>")
+                }
+            });
+
+
+        });
+
+    </script>
 </body>
 </html>
 
