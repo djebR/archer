@@ -139,31 +139,27 @@ ob_end_flush();
                 $cbdURL = getCBD($value2["value"], ($i==0)?"http://dbtune.org/musicbrainz/sparql":"http://dbpedia.org/sparql", array('query'=>'query','format'=>'json'));
                 $cbd = json_decode(request($cbdURL), true); 
                 echo "<table class='table'><tr><th>Predicate</th><th>Object</th></tr>";
-                foreach ($cbd as $key3 => $value3) {
+                foreach ($cbd["results"]["bindings"] as $key3 => $value3) {
                     echo "<tr>";
                         echo "<td>".$value3["predicate"]["value"]."</td>";
                         echo "<td>".$value3["object"]["value"]."</td>";
                     echo "</tr>";
-                    $cbdAnswer[$key][] = array("subject" => $value2["value"], "predicate" =>$value3["predicate"]["value"], "object" => $value3["object"]["value"]);
-                    $fp = fopen('results/{$key2}.{$key}.json', 'w');
-                    fwrite($fp, json_encode($cbdAnswer));
-                    fclose($fp);
+                    $cbdAnswer[$key][$i][] = array("subject" => $value2["value"], "predicate" =>$value3["predicate"]["value"], "object" => $value3["object"]["value"]);
                 }
                 echo "</table>";
                 echo "</div></div></td>";
+
+                $fp = fopen("results/{$i}_{$key}.json", 'w');
+                fwrite($fp, json_encode($cbdAnswer[$key][$i]));
+                fclose($fp);
                 $i += 1;
             }
 
-            echo "<td><a href='analyze.php?i={$key}'>Analyze</a></td></tr>";
+            echo "<td><a href='analyze.php?key={$key}'>Analyze</a></td></tr>";
         }
-
-
-
 
     ?>
     </table>
-
-
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
