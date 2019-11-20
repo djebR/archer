@@ -156,9 +156,9 @@ ob_end_flush();
 
 
 
-        $fp = fopen('results.json', 'w');
-        fwrite($fp, json_encode($cbdAnswer));
-        fclose($fp);
+        // $fp = fopen('results.json', 'w');
+        // fwrite($fp, json_encode($cbdAnswer));
+        // fclose($fp);
     ?>
     </table>
 
