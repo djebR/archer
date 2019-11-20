@@ -160,9 +160,9 @@ ob_end_flush();
                 echo "</table>";
                 echo "</div></div></td>";
 
-                //$fp = fopen("results/{$i}_{$key}.json", 'w');
-                //fwrite($fp, json_encode($cbdAnswer[$key][$i]));
-                //fclose($fp);
+                $fp = fopen("results/{$i}_{$key}.json", 'w');
+                fwrite($fp, json_encode($cbdAnswer[$key][$i]));
+                fclose($fp);
                 $i += 1;
             }
 
