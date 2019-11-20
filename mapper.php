@@ -29,7 +29,7 @@ function getCBD($instance, $source, $parameters){
    $query = 
    "SELECT ?predicate ?object
    WHERE {
-      <".$instance."> ?predicate ?object . 
+      <".urldecode($instance)."> ?predicate ?object . 
    }";
  
     $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
@@ -125,12 +125,13 @@ body {
     </div>
     <br/>
 
-    <h3>Resources: </h3>
-    <table class="table table-bordered">
+    <h3>Resources: <a href="#" id='analyseAll' class="float-right btn btn-primary">Analyze all</a></h3>
     <?php
+        echo "<table class='table table-bordered' id='results'>";
+        $counter = array(0 => 0, 1 => 0);
         ob_start();
-ob_implicit_flush(true);
-ob_end_flush();
+        ob_implicit_flush(true);
+        ob_end_flush();
 
         echo "<tr>";
         echo "<th scope='col'>N°</th>";
@@ -144,33 +145,51 @@ ob_end_flush();
             foreach ($value as $key2 => $value2) {
                 
                 echo "<td><a data-toggle='collapse'
-                 href='#collapseExample".$key.$key2."' role='button' aria-expanded='false' aria-controls='collapseExample".$key.$key2."'>".$value2["value"]."<span class='badge badge-dark float-right'>";
+                 href='#collapseExample".$key.$key2."' role='button' aria-expanded='false' aria-controls='collapseExample".$key.$key2."'>".urldecode($value2["value"])."<span class='badge badge-dark float-right'>";
                 
                 $cbdURL = getCBD($value2["value"], ($i==0)?"http://dbtune.org/musicbrainz/sparql":"http://dbpedia.org/sparql", array('query'=>'query','format'=>'json'));
                 $cbd = json_decode(request($cbdURL), true); 
-                echo count($cbd["results"]["bindings"])."</span></a><div class='collapse' id='collapseExample".$key.$key2."'><div class='card card-body'>";
-                echo "<table class='table'><tr><th>Predicate</th><th>Object</th></tr>";
-                foreach ($cbd["results"]["bindings"] as $key3 => $value3) {
-                    echo "<tr>";
-                        echo "<td>".$value3["predicate"]["value"]."</td>";
-                        echo "<td>".$value3["object"]["value"]."</td>";
-                    echo "</tr>";
-                    $cbdAnswer[$key][$i][] = array("subject" => $value2["value"], "predicate" =>$value3["predicate"]["value"], "object" => $value3["object"]["value"]);
+                if(is_array($cbd)) {
+                    $counter[$i] += count($cbd["results"]["bindings"]);
+                    echo count($cbd["results"]["bindings"])."</span></a><div class='collapse' id='collapseExample".$key.$key2."'><div class='card card-body'>";
+                    echo "<table class='table'><tr><th>Predicate</th><th>Object</th></tr>";
+                    foreach ($cbd["results"]["bindings"] as $key3 => $value3) {
+                        echo "<tr>";
+                            echo "<td>".$value3["predicate"]["value"]."</td>";
+                            echo "<td>".$value3["object"]["value"]."</td>";
+                        echo "</tr>";
+                        $cbdAnswer[$key][$i][] = array("subject" => $value2["value"], "predicate" =>$value3["predicate"]["value"], "object" => $value3["object"]["value"]);
+                    }
+                    echo "</table>";
+                    $fp = fopen("results/{$i}_{$key}.json", 'w');
+                    fwrite($fp, json_encode($cbdAnswer[$key][$i]));
+                    fclose($fp);
+
+                } else {
+                    echo "0</span></a><div class='collapse' id='collapseExample".$key.$key2."'><div class='card card-body'>";
+                    $fp = fopen("results/{$i}_{$key}.json", 'w');
+                    fwrite($fp, json_encode(array()));
+                    fclose($fp);
+
                 }
-                echo "</table>";
                 echo "</div></div></td>";
 
-                $fp = fopen("results/{$i}_{$key}.json", 'w');
-                fwrite($fp, json_encode($cbdAnswer[$key][$i]));
-                fclose($fp);
                 $i += 1;
             }
 
             echo "<td><a class='analysis' href='#' data-key='{$key}' data-toggle='modal' data-target='#exampleModalCenter'>Analyze</a></td></tr>";
         }
 
+        echo "<tr>
+                <td></td>
+                <td><span id='count0' class='badge badge-dark float-right'>".$counter[0]."</span></td>
+                <td><span id='count1' class='badge badge-dark float-right'>".$counter[1]."</span></td>
+                <td><span id='count2'></span></td>
+            </tr>
+            </table>";
     ?>
-    </table>
+
+    
 
     <div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
@@ -215,6 +234,40 @@ ob_end_flush();
             });
 
 
+        });
+
+        $('#analyseAll').on('click', function(){
+
+            var keys = $("a[class=analysis]");
+            var count0 = 0;
+            var count1 = 0;
+            var countLinks = 0;
+            $.each(keys, function (indexInArray, valueOfElement) { 
+                var that = $(this);
+                var key = $(this).data("key");
+                var firstTriple = $(this).parent().siblings('td').children('a:first');
+                var secondTriple = $(this).parent().siblings('td').children('a:last');
+
+                $.ajax({
+                    async: false,
+                    type: "get",
+                    url: "analyze.php?key=" + key,
+                    data: "data",
+                    dataType: "json",
+                    success: function (response) {
+                        firstTriple.html(firstTriple.html() + "<span class='badge badge-danger float-right'>"+ response.nodesFrom + "</span>");
+                        secondTriple.html(secondTriple.html() + "<span class='badge badge-danger float-right'>"+ response.nodesTo + "</span>");
+                        that.html(that.html() + "<span class='badge badge-success float-right'>"+ response.links + "</span>");
+                        count0 += response.nodesFrom;
+                        count1 += response.nodesTo;
+                        countLinks += response.links;
+                    }
+                });
+            });
+
+            $('#count0').parent().html($('#count0').parent().html() + "<span class='badge badge-danger float-right'>"+ count0 + "</span>");
+            $('#count1').parent().html($('#count1').parent().html() + "<span class='badge badge-danger float-right'>"+ count1 + "</span>");
+            $('#count2').parent().html($('#count2').parent().html() + "<span class='badge badge-success float-right'>"+ countLinks + "</span>");
         });
 
     </script>
