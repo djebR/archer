@@ -1,8 +1,7 @@
 <?php
-    $f0 = $_REQUEST['f0'];
-    $f1 = $_REQUEST['f1'];
+    $key = $_REQUEST['key'];
 
-    if(file_exists("results/{$f0}.json") && file_exists("results/{$f1}.json")){
+    if(file_exists("results/0_{$key}.json") && file_exists("results/1_{$key}.json")){
         
     }
     else die();
