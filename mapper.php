@@ -1,90 +1,90 @@
 <?php 
-/*
-    $class: the focus class, from which we want to get resources
-    $limit: number of instances from the focused class
-*/
+    /*
+        $class: the focus class, from which we want to get resources
+        $limit: number of instances from the focused class
+    */
 
-function getInstances($class, $source, $parameters, $limit = 500, $sourceSimilarity = null){
-   $format = 'json';
- 
-   $query = 
-        "SELECT distinct ?instance  ".(!is_null($sourceSimilarity)?("?instance2"):"")."
-        WHERE {
-            ?instance a ".$class." .
-            ".(!is_null($sourceSimilarity)?("
-            ?instance <http://www.w3.org/2002/07/owl#sameAs> ?instance2 .
-            FILTER (CONTAINS(STR(?instance2),'".$sourceSimilarity."'))
-            "):"")."
-        }
-        LIMIT ".$limit;
- 
-    $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
-    if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
-
-    return $searchUrl;
-}
-
-function getCBD($instance, $source, $parameters){
- 
-   $query = 
-   "SELECT ?predicate ?object
-   WHERE {
-      <".urldecode($instance)."> ?predicate ?object . 
-   }";
- 
-    $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
-    if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
-	  
-   return $searchUrl;
-}
-
-function request($url){
- 
-   // is curl installed?
-   if (!function_exists('curl_init')){ 
-      die('CURL is not installed!');
-   }
- 
-   // get curl handle
-   $ch= curl_init();
- 
-   // set request url
-   curl_setopt($ch, 
-      CURLOPT_URL, 
-      $url);
- 
-   // return response, don't print/echo
-   curl_setopt($ch, 
-      CURLOPT_RETURNTRANSFER, 
-      true);
- 
-   /*
-   Here you find more options for curl:
-   http://www.php.net/curl_setopt
-   */		
- 
-   $response = curl_exec($ch);
- 
-   curl_close($ch);
- 
-   return $response;
-}
-
-
-$cbdAnswer = array();
-
-$instanceURL = getInstances($_REQUEST['class'], "http://dbtune.org/musicbrainz/sparql", array('query'=>'query','format'=>'json'), $_REQUEST["limit"], "dbpedia");
-
-$instanceArray = json_decode(request($instanceURL), true); 
+    function getInstances($class, $source, $parameters, $limit = 500, $sourceSimilarity = null){
+    $format = 'json';
     
-/*
-    - Get instances from a class, with limits
-    - Get the CBD for every instance
-    - Compare the CBDs, 
-    - extract metrics,
-    - use the extracted metrics to query for conjunctions; (Example: get a website from the other source, it will be annotated with the same value that propagated through the link)
+    $query = 
+            "SELECT distinct ?instance  ".(!is_null($sourceSimilarity)?("?instance2"):"")."
+            WHERE {
+                ?instance a ".$class." .
+                ".(!is_null($sourceSimilarity)?("
+                ?instance <http://www.w3.org/2002/07/owl#sameAs> ?instance2 .
+                FILTER (CONTAINS(STR(?instance2),'".$sourceSimilarity."'))
+                "):"")."
+            }
+            LIMIT ".$limit;
+    
+        $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
+        if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
 
-*/
+        return $searchUrl;
+    }
+
+    function getCBD($instance, $source, $parameters){
+    
+    $query = 
+    "SELECT ?predicate ?object
+    WHERE {
+        <".urldecode($instance)."> ?predicate ?object . 
+    }";
+    
+        $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
+        if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
+        
+    return $searchUrl;
+    }
+
+    function request($url){
+    
+    // is curl installed?
+    if (!function_exists('curl_init')){ 
+        die('CURL is not installed!');
+    }
+    
+    // get curl handle
+    $ch= curl_init();
+    
+    // set request url
+    curl_setopt($ch, 
+        CURLOPT_URL, 
+        $url);
+    
+    // return response, don't print/echo
+    curl_setopt($ch, 
+        CURLOPT_RETURNTRANSFER, 
+        true);
+    
+    /*
+    Here you find more options for curl:
+    http://www.php.net/curl_setopt
+    */		
+    
+    $response = curl_exec($ch);
+    
+    curl_close($ch);
+    
+    return $response;
+    }
+
+
+    $cbdAnswer = array();
+
+    $instanceURL = getInstances($_REQUEST['class'], "http://dbtune.org/musicbrainz/sparql", array('query'=>'query','format'=>'json'), $_REQUEST["limit"], "dbpedia");
+
+    $instanceArray = json_decode(request($instanceURL), true); 
+        
+    /*
+        - Get instances from a class, with limits
+        - Get the CBD for every instance
+        - Compare the CBDs, 
+        - extract metrics,
+        - use the extracted metrics to query for conjunctions; (Example: get a website from the other source, it will be annotated with the same value that propagated through the link)
+
+    */
 ?>
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
@@ -94,26 +94,31 @@ $instanceArray = json_decode(request($instanceURL), true);
 
 <head>
 
-<title>Archer</title>
-<meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-<style>
-body {
-    margin: 20px;
-}
+    <title>Archer</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <style>
+    body {
+        margin: 20px;
+    }
 
-.card td, .stats td {
-    padding: 0px 0px 0px 10px;
-    font-size:small;
-}
+    .card td, .stats td {
+        padding: 0px 0px 0px 10px;
+        font-size:small;
+    }
 
-.icn {
-    width:20px;
-    height:20px;
-    margin-right: 10px;
-}
-</style>
+    .icn {
+        width:20px;
+        height:20px;
+        margin-right: 10px;
+    }
+    #plotter {
+        height:500px;
+        margin-right: 10px;
+    }
+    </style>
 
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 
 <body>
@@ -227,8 +232,6 @@ body {
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 
     <script>
-
-
         $('.analysis').on('click', function(){
             var that = $(this);
             var key = $(this).data("key");
@@ -313,7 +316,8 @@ body {
                         + "Number of (MB) Resources with zero links : " + response.zeroResources0 + "<br/>"
                         + "Number of (DBP) Resources with zero links : " + response.zeroResources1 + "<br/>"
                         + "Number of Triples of (MB) Resources with zero links : " + response.zeroResourcesTriples0 + "<br/>"
-                        + "Number of Triples of (DBP) Resources with zero links : " + response.zeroResourcesTriples1 + "</td><tr>";
+                        + "Number of Triples of (DBP) Resources with zero links : " + response.zeroResourcesTriples1 + "</td>"
+                        + "<td id='plotter'></td><><tr>";
                     console.log(response.LinkedPred);
 
                     for (element in response.LinkedPred){
@@ -322,6 +326,27 @@ body {
                     content += "</table>";
 
                     $('body').append(content);
+
+                    var y0 = [];
+                    var y1 = [];
+                    for (var i = 0; i < 50; i ++) {
+                        y0[i] = Math.random();
+                        y1[i] = Math.random() + 1;
+                    }
+
+                    var trace1 = {
+                    y: y0,
+                    type: 'box'
+                    };
+
+                    var trace2 = {
+                    y: y1,
+                    type: 'box'
+                    };
+
+                    var data = [trace1, trace2];
+
+                    Plotly.newPlot('plotter', data);
                 }
             });
 
