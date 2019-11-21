@@ -102,7 +102,7 @@ body {
     margin: 20px;
 }
 
-.card td {
+.card td, .stats td {
     padding: 0px 0px 0px 10px;
     font-size:small;
 }
@@ -215,6 +215,7 @@ body {
 
     <script>
 
+
         $('.analysis').on('click', function(){
             var that = $(this);
             var key = $(this).data("key");
@@ -242,6 +243,9 @@ body {
             var count0 = 0;
             var count1 = 0;
             var countLinks = 0;
+            var possibleLinks = [];
+            var hash = {};
+
             $.each(keys, function (indexInArray, valueOfElement) { 
                 var that = $(this);
                 var key = $(this).data("key");
@@ -261,6 +265,14 @@ body {
                         count0 += response.nodesFrom;
                         count1 += response.nodesTo;
                         countLinks += response.links;
+                        response.possibleLinkedPred.forEach(element => {
+                            if(!hash.hasOwnProperty(element)){
+                                possibleLinks.push(element);
+                                hash[element] = 1;
+                            } else {
+                                hash[element]++;
+                            }
+                        });
                     }
                 });
             });
@@ -268,6 +280,15 @@ body {
             $('#count0').parent().html($('#count0').parent().html() + "<span class='badge badge-danger float-right'>"+ count0 + "</span>");
             $('#count1').parent().html($('#count1').parent().html() + "<span class='badge badge-danger float-right'>"+ count1 + "</span>");
             $('#count2').parent().html($('#count2').parent().html() + "<span class='badge badge-success float-right'>"+ countLinks + "</span>");
+
+
+            var content = "<table class='table table-bordered stats'>";
+            possibleLinks.forEach(element => (
+                content += '<tr><td>' + element[0] + '</td><td>' + element[1] + '</td><td>' + hash[element] + '</td></tr>'
+            ));
+            content += "</table>";
+
+            $('body').append(content);
         });
 
     </script>
