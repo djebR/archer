@@ -70,7 +70,7 @@
             // read files into json objects
             $s0 = json_decode(file_get_contents("results/0_{$key}.json"));
             $s1 = json_decode(file_get_contents("results/1_{$key}.json"));
-
+            
             $oldTotal = $totalLinkedNodes0;
             // analyse from -> to links
             foreach ($s0 as $triple0) {

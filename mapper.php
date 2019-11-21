@@ -106,6 +106,12 @@ body {
     padding: 0px 0px 0px 10px;
     font-size:small;
 }
+
+.icn {
+    width:20px;
+    height:20px;
+    margin-right: 10px;
+}
 </style>
 
 </head>
@@ -127,6 +133,12 @@ body {
 
     <h3>Resources: <a href="#" id='analyseAll' class="float-right btn btn-primary">Analyze all</a></h3>
     <?php
+        $files = glob('results/*.json'); // get all file names
+        foreach($files as $file){ // iterate files
+            if(is_file($file))
+                unlink($file); // delete file
+        }
+
         echo "<table class='table table-bordered' id='results'>";
         $counter = array(0 => 0, 1 => 0);
         ob_start();
@@ -144,12 +156,13 @@ body {
             echo "<tr><th scope='row'>".($key+1)."</th>";
             foreach ($value as $key2 => $value2) {
                 
-                echo "<td><a data-toggle='collapse'
+                echo "<td><a href='".$value2["value"]."' target='_blank'><img class='icn' src='assets/img/lnk.png'/></a><a data-toggle='collapse'
                  href='#collapseExample".$key.$key2."' role='button' aria-expanded='false' aria-controls='collapseExample".$key.$key2."'>".urldecode($value2["value"])."<span class='badge badge-dark float-right'>";
+                
                 
                 $cbdURL = getCBD($value2["value"], ($i==0)?"http://dbtune.org/musicbrainz/sparql":"http://dbpedia.org/sparql", array('query'=>'query','format'=>'json'));
                 $cbd = json_decode(request($cbdURL), true); 
-                if(is_array($cbd)) {
+                if(is_array($cbd) && count($cbd["results"]["bindings"]) > 0) {
                     $counter[$i] += count($cbd["results"]["bindings"]);
                     echo count($cbd["results"]["bindings"])."</span></a><div class='collapse' id='collapseExample".$key.$key2."'><div class='card card-body'>";
                     echo "<table class='table'><tr><th>Predicate</th><th>Object</th></tr>";
@@ -181,7 +194,7 @@ body {
         }
 
         echo "<tr>
-                <td></td>
+                <td>Total</td>
                 <td><span id='count0' class='badge badge-dark float-right'>".$counter[0]."</span></td>
                 <td><span id='count1' class='badge badge-dark float-right'>".$counter[1]."</span></td>
                 <td><span id='count2'></span></td>
@@ -249,8 +262,8 @@ body {
             $.each(keys, function (indexInArray, valueOfElement) { 
                 var that = $(this);
                 var key = $(this).data("key");
-                var firstTriple = $(this).parent().siblings('td').children('a:first');
-                var secondTriple = $(this).parent().siblings('td').children('a:last');
+                var firstTriple = $(this).parent().siblings('td').children('a[role]:first');
+                var secondTriple = $(this).parent().siblings('td').children('a[role]:last');
 
                 $.ajax({
                     async: false,
@@ -265,6 +278,8 @@ body {
                         count0 += response.nodesFrom;
                         count1 += response.nodesTo;
                         countLinks += response.links;
+                        /* will be update to use with d3
+                        
                         response.possibleLinkedPred.forEach(element => {
                             if(!hash.hasOwnProperty(element)){
                                 possibleLinks.push(element);
@@ -272,7 +287,7 @@ body {
                             } else {
                                 hash[element]++;
                             }
-                        });
+                        });*/
                     }
                 });
             });
@@ -281,14 +296,35 @@ body {
             $('#count1').parent().html($('#count1').parent().html() + "<span class='badge badge-danger float-right'>"+ count1 + "</span>");
             $('#count2').parent().html($('#count2').parent().html() + "<span class='badge badge-success float-right'>"+ countLinks + "</span>");
 
+            $.ajax({
+                async: false,
+                type: "get",
+                url: "analyze.php",
+                data: "data",
+                dataType: "json",
+                success: function (response) {
 
-            var content = "<table class='table table-bordered stats'>";
-            possibleLinks.forEach(element => (
-                content += '<tr><td>' + element[0] + '</td><td>' + element[1] + '</td><td>' + hash[element] + '</td></tr>'
-            ));
-            content += "</table>";
+                    var content = "<table class='table table-bordered stats'>";
+                    content += '<tr><td>' +
+                        "Number of Triples issued from MusicBrainz : " + response.totalTriples0 + "<br/>"
+                        + "Number of Triples issued from DBpedia : " + response.totalTriples1 + "<br/>"
+                        + "Number of (MB) Resources linked with (DBP) : " + response.totalLinkedNodes0 + "<br/>"
+                        + "Number of (DBP) Resources linked with (MB) : " + response.totalLinkedNodes1 + "<br/>"
+                        + "Number of (MB) Resources with zero links : " + response.zeroResources0 + "<br/>"
+                        + "Number of (DBP) Resources with zero links : " + response.zeroResources1 + "<br/>"
+                        + "Number of Triples of (MB) Resources with zero links : " + response.zeroResourcesTriples0 + "<br/>"
+                        + "Number of Triples of (DBP) Resources with zero links : " + response.zeroResourcesTriples1 + "</td><tr>";
+                    console.log(response.LinkedPred);
 
-            $('body').append(content);
+                    for (element in response.LinkedPred){
+                        content += '<tr><td>' + response.LinkedPred[element][0] + '</td><td>' + response.LinkedPred[element][1] + '</td><td>' + response.LinkedPred[element][2] + '</td></tr>'
+                    };
+                    content += "</table>";
+
+                    $('body').append(content);
+                }
+            });
+
         });
 
     </script>
