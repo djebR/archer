@@ -1,4 +1,6 @@
 <?php 
+
+    ini_set('max_execution_time', 0); // to get unlimited php script execution time
     /*
         $class: the focus class, from which we want to get resources
         $limit: number of instances from the focused class
@@ -116,27 +118,59 @@
         height:500px;
         margin-right: 10px;
     }
+    .plot-container.plotly {
+        position:absolute;
+    }
     </style>
 
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 
 <body>
+
+
     <h1>Archer</h1>
 
     <div class="row">
-        <div class="col-8">
-            <h4>Class name:</h3>
-            <input name="class" type="text" style="width:100%;" value="<?php echo $_REQUEST["class"]; ?>">
-        </div>
-        <div class="col-4">
-            <h4>Number of resources:</h3>
-            <input name="limit" type="text" style="width:100%;" value="<?php echo $_REQUEST["limit"]; ?>">
-        </div>
+    <div class="col-12">
+        <form action='mapper.php'>
+            <div class="form-group row">
+                <label for="class" class="col-sm-1 col-form-label">Class</label>
+                <div class="col-sm-5">
+                <input type="text" class="form-control" id="class" name="class" placeholder="Class" value='<?php echo $_REQUEST["class"]; ?>'/>
+                </div>
+                <label for="limit" class="col-sm-1 col-form-label">Limit</label>
+                <div class="col-sm-5">
+                <input type="text" class="form-control" id="limit" name="limit" placeholder="Class" value='<?php echo $_REQUEST["limit"]; ?>'/>
+                </div>
+            </div>
+            <div class="form-group row">
+                <label for="main" class="col-sm-1 col-form-label">Main source</label>
+                <div class="col-sm-5">
+                <input type="text" class="form-control" id="main" name="main" placeholder="Main source" value='<?php echo $_REQUEST["main"]; ?>'/>
+                </div>
+                <label for="second" class="col-sm-1 col-form-label">Secondary source</label>
+                <div class="col-sm-5">
+                <input type="text" class="form-control" id="second" name="second" placeholder="Class" value='<?php echo $_REQUEST["second"]; ?>'/>
+                </div>
+            </div>
+            <div class="form-group row">
+                <div class="col-sm-2">
+                <button type="submit" class="btn btn-primary">Query</button>
+                </div>
+                <div class="col-sm-8">
+                <div class="progress">
+                    <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
+                    ></div>
+                </div>
+                </div>
+                <div class="col-sm-2">
+                    <a href="#" id='analyseAll' class="float-right btn btn-primary">Analyze all</a>
+                </div>
+            </div>
+        </form>
     </div>
-    <br/>
-
-    <h3>Resources: <a href="#" id='analyseAll' class="float-right btn btn-primary">Analyze all</a></h3>
+    </div>
     <?php
         $files = glob('results/*.json'); // get all file names
         foreach($files as $file){ // iterate files
@@ -156,13 +190,19 @@
             echo "<th scope='col'>".$value."</th>";
         }
         echo "<th scope='col'>Analyze</th></tr>";
+
+        $all = count($instanceArray["results"]["bindings"]);
+        $nom = 0;
         foreach ($instanceArray["results"]["bindings"] as $key => $value) {
+            $nom++;
+            $percent = round($nom*100/$all);
+            echo "<script>document.getElementById('progress-bar').setAttribute('style', 'width:{$percent}% !important;')</script>";
             $i = 0;
             echo "<tr><th scope='row'>".($key+1)."</th>";
             foreach ($value as $key2 => $value2) {
                 
                 echo "<td><a href='".$value2["value"]."' target='_blank'><img class='icn' src='assets/img/lnk.png'/></a><a data-toggle='collapse'
-                 href='#collapseExample".$key.$key2."' role='button' aria-expanded='false' aria-controls='collapseExample".$key.$key2."'>".urldecode($value2["value"])."<span class='badge badge-dark float-right'>";
+                 href='#collapseExample".$key.$key2."' role='button' aria-expanded='false' aria-controls='collapseExample".$key.$key2."'>".urldecode($value2["value"])."<span class='triple{$i} badge badge-dark float-right'>";
                 
                 
                 $cbdURL = getCBD($value2["value"], ($i==0)?"http://dbtune.org/musicbrainz/sparql":"http://dbpedia.org/sparql", array('query'=>'query','format'=>'json'));
@@ -259,8 +299,10 @@
             var count0 = 0;
             var count1 = 0;
             var countLinks = 0;
-            var possibleLinks = [];
-            var hash = {};
+
+            var y0 = [];
+            var y1 = [];
+            var y2 = [];
 
             $.each(keys, function (indexInArray, valueOfElement) { 
                 var that = $(this);
@@ -281,6 +323,12 @@
                         count0 += response.nodesFrom;
                         count1 += response.nodesTo;
                         countLinks += response.links;
+
+                        triple0 = Number(that.parent().siblings('td').find('.triple0').text());
+                        triple1 = Number(that.parent().siblings('td').find('.triple1').text());
+                        y0[key] = (triple0 == 0)?0:(response.nodesFrom/triple0);
+                        y1[key] = (triple1 == 0)?0:(response.nodesTo/triple1);
+                        y2[key] = (triple0 == 0 || triple1 == 0)?0:Math.max(response.nodesFrom,response.nodesTo)/Math.min(triple0, triple1);
                         /* will be update to use with d3
                         
                         response.possibleLinkedPred.forEach(element => {
@@ -307,7 +355,7 @@
                 dataType: "json",
                 success: function (response) {
 
-                    var content = "<table class='table table-bordered stats'>";
+                    var content = "<table class='table stats'>";
                     content += '<tr><td>' +
                         "Number of Triples issued from MusicBrainz : " + response.totalTriples0 + "<br/>"
                         + "Number of Triples issued from DBpedia : " + response.totalTriples1 + "<br/>"
@@ -317,8 +365,7 @@
                         + "Number of (DBP) Resources with zero links : " + response.zeroResources1 + "<br/>"
                         + "Number of Triples of (MB) Resources with zero links : " + response.zeroResourcesTriples0 + "<br/>"
                         + "Number of Triples of (DBP) Resources with zero links : " + response.zeroResourcesTriples1 + "</td>"
-                        + "<td id='plotter'></td><><tr>";
-                    console.log(response.LinkedPred);
+                        + "<td><div class='col-12' id='plotter'></div></td><tr>";
 
                     for (element in response.LinkedPred){
                         content += '<tr><td>' + response.LinkedPred[element][0] + '</td><td>' + response.LinkedPred[element][1] + '</td><td>' + response.LinkedPred[element][2] + '</td></tr>'
@@ -327,24 +374,25 @@
 
                     $('body').append(content);
 
-                    var y0 = [];
-                    var y1 = [];
-                    for (var i = 0; i < 50; i ++) {
-                        y0[i] = Math.random();
-                        y1[i] = Math.random() + 1;
-                    }
-
                     var trace1 = {
                     y: y0,
-                    type: 'box'
+                    type: 'box',
+                    name: 'MusicBrainz'
                     };
 
                     var trace2 = {
                     y: y1,
-                    type: 'box'
+                    type: 'box',
+                    name: 'DBpedia'
                     };
 
-                    var data = [trace1, trace2];
+                    var trace3 = {
+                    y: y2,
+                    type: 'box',
+                    name: 'Total'
+                    };
+
+                    var data = [trace1, trace2, trace3];
 
                     Plotly.newPlot('plotter', data);
                 }
