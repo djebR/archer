@@ -118,8 +118,13 @@
         height:500px;
         margin-right: 10px;
     }
+
     .plot-container.plotly {
         position:absolute;
+    }
+
+    .progress {
+        margin-top: 11px;
     }
     </style>
 
@@ -160,8 +165,7 @@
                 </div>
                 <div class="col-sm-8">
                 <div class="progress">
-                    <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
-                    ></div>
+                    <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
                 </div>
                 <div class="col-sm-2">
@@ -196,7 +200,7 @@
         foreach ($instanceArray["results"]["bindings"] as $key => $value) {
             $nom++;
             $percent = round($nom*100/$all);
-            echo "<script>document.getElementById('progress-bar').setAttribute('style', 'width:{$percent}% !important;')</script>";
+            echo "<script class='deletelater'>document.getElementById('progress-bar').setAttribute('style', 'width:{$percent}% !important;')</script>";
             $i = 0;
             echo "<tr><th scope='row'>".($key+1)."</th>";
             foreach ($value as $key2 => $value2) {
@@ -272,6 +276,9 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 
     <script>
+
+        $('.deletelater').remove();
+        
         $('.analysis').on('click', function(){
             var that = $(this);
             var key = $(this).data("key");
