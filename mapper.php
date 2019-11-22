@@ -7,18 +7,18 @@
     */
 
     function getInstances($class, $source, $parameters, $limit = 500, $sourceSimilarity = null){
-    $format = 'json';
-    
-    $query = 
-            "SELECT distinct ?instance  ".(!is_null($sourceSimilarity)?("?instance2"):"")."
-            WHERE {
-                ?instance a ".$class." .
-                ".(!is_null($sourceSimilarity)?("
-                ?instance <http://www.w3.org/2002/07/owl#sameAs> ?instance2 .
-                FILTER (CONTAINS(STR(?instance2),'".$sourceSimilarity."'))
-                "):"")."
-            }
-            LIMIT ".$limit;
+        $format = 'json';
+        
+        $query = 
+                "SELECT distinct ?instance  ".(!is_null($sourceSimilarity)?("?instance2"):"")."
+                WHERE {
+                    ?instance a ".$class." .
+                    ".(!is_null($sourceSimilarity)?("
+                    ?instance <http://www.w3.org/2002/07/owl#sameAs> ?instance2 .
+                    FILTER (CONTAINS(STR(?instance2),'".$sourceSimilarity."'))
+                    "):"")."
+                }
+                LIMIT ".$limit;
     
         $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
         if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
@@ -27,17 +27,44 @@
     }
 
     function getCBD($instance, $source, $parameters){
-    
-    $query = 
-    "SELECT ?predicate ?object
-    WHERE {
-        <".urldecode($instance)."> ?predicate ?object . 
-    }";
-    
-        $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
-        if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
+        $query = 
+        "SELECT ?predicate ?object
+        WHERE {
+            <".urldecode($instance)."> ?predicate ?object . 
+        }";
         
-    return $searchUrl;
+            $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
+            if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
+            
+        return $searchUrl;
+    }
+
+    function getSymCBD($instance, $source, $parameters){
+        $query = 
+        "SELECT ?predicate ?object
+        WHERE {
+            {
+                <".urldecode($instance)."> ?predicate ?object . 
+            } UNION {
+                ?object ?predicate <".urldecode($instance).">. 
+            }
+        }";
+        
+            $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
+            if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
+            
+        return $searchUrl;
+    }
+
+    function getCustomCBD($instance, $source, $parameters, $pattern){
+        $query = 
+        "SELECT ?predicate ?object
+        WHERE {".$pattern."}";
+        
+            $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
+            if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
+            
+        return $searchUrl;
     }
 
     function request($url){
@@ -75,7 +102,7 @@
 
     $cbdAnswer = array();
 
-    $instanceURL = getInstances($_REQUEST['class'], "http://dbtune.org/musicbrainz/sparql", array('query'=>'query','format'=>'json'), $_REQUEST["limit"], "dbpedia");
+    $instanceURL = getInstances($_REQUEST['class'], $_REQUEST['main'], array('query'=>'query','format'=>'json'), $_REQUEST["limit"], "fr.dbpedia");
 
     $instanceArray = json_decode(request($instanceURL), true); 
         
@@ -205,7 +232,7 @@
                  href='#collapseExample".$key.$key2."' role='button' aria-expanded='false' aria-controls='collapseExample".$key.$key2."'>".urldecode($value2["value"])."<span class='triple{$i} badge badge-dark float-right'>";
                 
                 
-                $cbdURL = getCBD($value2["value"], ($i==0)?"http://dbtune.org/musicbrainz/sparql":"http://dbpedia.org/sparql", array('query'=>'query','format'=>'json'));
+                $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'));
                 $cbd = json_decode(request($cbdURL), true); 
                 if(is_array($cbd) && count($cbd["results"]["bindings"]) > 0) {
                     $counter[$i] += count($cbd["results"]["bindings"]);
