@@ -102,10 +102,10 @@
 
     $cbdAnswer = array();
 
-    $instanceURL = getInstances($_REQUEST['class'], $_REQUEST['main'], array('query'=>'query','format'=>'json'), $_REQUEST["limit"], "fr.dbpedia");
+    $instanceURL = getInstances($_REQUEST['class'], $_REQUEST['main'], array('query'=>'query','format'=>'json'), $_REQUEST["limit"], $_REQUEST["similarity"]);
 
     $instanceArray = json_decode(request($instanceURL), true); 
-        
+
     /*
         - Get instances from a class, with limits
         - Get the CBD for every instance
@@ -127,32 +127,34 @@
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <style>
-    body {
-        margin: 20px;
-    }
+        body {
+            margin: 20px;
+        }
 
-    .card td, .stats td {
-        padding: 0px 0px 0px 10px;
-        font-size:small;
-    }
+        .card td, .stats td {
+            padding: 0px 0px 0px 10px;
+            font-size:small;
+        }
 
-    .icn {
-        width:20px;
-        height:20px;
-        margin-right: 10px;
-    }
-    #plotter {
-        height:500px;
-        margin-right: 10px;
-    }
+        .icn {
+            width:20px;
+            height:20px;
+            margin-right: 10px;
+        }
+        
+        #plotter {
+            height:500px;
+            border: 1px solid;
+            overflow: hidden;
+        }
 
-    .plot-container.plotly {
-        position:absolute;
-    }
+        .plot-container.plotly {
+            position:absolute;
+        }
 
-    .progress {
-        margin-top: 11px;
-    }
+        .progress {
+            margin-top: 11px;
+        }
     </style>
 
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
@@ -164,50 +166,70 @@
     <h1>Archer</h1>
 
     <div class="row">
-    <div class="col-12">
-        <form action='mapper.php'>
-            <div class="form-group row">
-                <label for="class" class="col-sm-1 col-form-label">Class</label>
-                <div class="col-sm-5">
-                <input type="text" class="form-control" id="class" name="class" placeholder="Class" value='<?php echo $_REQUEST["class"]; ?>'/>
+        <div class="col-12">
+            <form action='mapper.php' method="POST">
+                <div class="form-group row">
+                    <label for="class" class="col-sm-1 col-form-label">Class</label>
+                    <div class="col-sm-5">
+                    <input type="text" class="form-control" id="class" name="class" placeholder="Class" value='<?php echo $_REQUEST["class"]; ?>'/>
+                    </div>
+                    <label for="limit" class="col-sm-1 col-form-label">Limit</label>
+                    <div class="col-sm-5">
+                    <input type="text" class="form-control" id="limit" name="limit" placeholder="Class" value='<?php echo $_REQUEST["limit"]; ?>'/>
+                    </div>
                 </div>
-                <label for="limit" class="col-sm-1 col-form-label">Limit</label>
-                <div class="col-sm-5">
-                <input type="text" class="form-control" id="limit" name="limit" placeholder="Class" value='<?php echo $_REQUEST["limit"]; ?>'/>
+                <div class="form-group row">
+                    <label for="main" class="col-sm-1 col-form-label">Main source</label>
+                    <div class="col-sm-5">
+                    <input type="text" class="form-control" id="main" name="main" placeholder="Main source" value='<?php echo $_REQUEST["main"]; ?>'/>
+                    </div>
+                    <label for="second" class="col-sm-1 col-form-label">Secondary source</label>
+                    <div class="col-sm-5">
+                    <input type="text" class="form-control" id="second" name="second" placeholder="Class" value='<?php echo $_REQUEST["second"]; ?>'/>
+                    </div>
                 </div>
-            </div>
-            <div class="form-group row">
-                <label for="main" class="col-sm-1 col-form-label">Main source</label>
-                <div class="col-sm-5">
-                <input type="text" class="form-control" id="main" name="main" placeholder="Main source" value='<?php echo $_REQUEST["main"]; ?>'/>
+                <div class="form-group row">
+                    <label for="similarity" class="col-sm-1 col-form-label">similarity string</label>
+                    <div class="col-sm-5">
+                    <input type="text" class="form-control" id="similarity" name="similarity" placeholder="similarity string" value='<?php echo $_REQUEST["similarity"]; ?>'/>
+                    </div>
+                    <label for="second" class="col-sm-1 col-form-label">CBD Choice</label>
+                    <div class="col-sm-5">
+                    </div>
                 </div>
-                <label for="second" class="col-sm-1 col-form-label">Secondary source</label>
-                <div class="col-sm-5">
-                <input type="text" class="form-control" id="second" name="second" placeholder="Class" value='<?php echo $_REQUEST["second"]; ?>'/>
+                <div class="form-group row">
+                    <div class="col-sm-2">
+                    <button type="submit" class="btn btn-primary">Query</button>
+                    </div>
+                    <div class="col-sm-8">
+                    <div class="progress">
+                        <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    </div>
+                    <div class="col-sm-2">
+                        <a href="#" id='analyseAll' class="float-right btn btn-primary">Analyze all</a>
+                    </div>
                 </div>
-            </div>
-            <div class="form-group row">
-                <div class="col-sm-2">
-                <button type="submit" class="btn btn-primary">Query</button>
-                </div>
-                <div class="col-sm-8">
-                <div class="progress">
-                    <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-                </div>
-                <div class="col-sm-2">
-                    <a href="#" id='analyseAll' class="float-right btn btn-primary">Analyze all</a>
-                </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
-    </div>
+
+    <p>
+        <a class="btn btn-primary dropdown-toggle" data-toggle="collapse" href="#allResults" role="button" aria-expanded="true" aria-controls="allResults">
+            Collapse Results
+        </a>
+    </p>
+
     <?php
         $files = glob('results/*.json'); // get all file names
         foreach($files as $file){ // iterate files
             if(is_file($file))
                 unlink($file); // delete file
         }
+
+ 
+        // Results start
+        echo "<div class='collapse show' id='allResults'>";
 
         echo "<table class='table table-bordered' id='results'>";
         $counter = array(0 => 0, 1 => 0);
@@ -276,9 +298,11 @@
                 <td><span id='count2'></span></td>
             </tr>
             </table>";
-    ?>
 
-    
+
+        echo "</div>";
+        // Results end
+    ?>
 
     <div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
@@ -305,7 +329,7 @@
     <script>
 
         $('.deletelater').remove();
-        
+
         $('.analysis').on('click', function(){
             var that = $(this);
             var key = $(this).data("key");
@@ -388,9 +412,9 @@
                 data: "data",
                 dataType: "json",
                 success: function (response) {
-
-                    var content = "<table class='table stats'>";
-                    content += '<tr><td>' +
+    
+                    var content = "<p><a class='btn btn-primary dropdown-toggle' data-toggle='collapse' href='#analyseResults' role='button' aria-expanded='true' aria-controls='analyseResults'>Collapse Analysis</a></p><div id='analyseResults' class='collapse show'>";
+                    content += "<div class='row'><div class='col-sm-6'>" +
                         "Number of Triples issued from MusicBrainz : " + response.totalTriples0 + "<br/>"
                         + "Number of Triples issued from DBpedia : " + response.totalTriples1 + "<br/>"
                         + "Number of (MB) Resources linked with (DBP) : " + response.totalLinkedNodes0 + "<br/>"
@@ -398,13 +422,13 @@
                         + "Number of (MB) Resources with zero links : " + response.zeroResources0 + "<br/>"
                         + "Number of (DBP) Resources with zero links : " + response.zeroResources1 + "<br/>"
                         + "Number of Triples of (MB) Resources with zero links : " + response.zeroResourcesTriples0 + "<br/>"
-                        + "Number of Triples of (DBP) Resources with zero links : " + response.zeroResourcesTriples1 + "</td>"
-                        + "<td><div class='col-12' id='plotter'></div></td><tr>";
+                        + "Number of Triples of (DBP) Resources with zero links : " + response.zeroResourcesTriples1 + "</div>"
+                        + "<div class='col-sm-6' id='plotter'></div></div><table class='table stats'><tr>";
 
                     for (element in response.LinkedPred){
                         content += '<tr><td>' + response.LinkedPred[element][0] + '</td><td>' + response.LinkedPred[element][1] + '</td><td>' + response.LinkedPred[element][2] + '</td></tr>'
                     };
-                    content += "</table>";
+                    content += "</table></div>";
 
                     $('body').append(content);
 
