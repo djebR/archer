@@ -190,11 +190,42 @@
                 </div>
                 <div class="form-group row">
                     <label for="similarity" class="col-sm-1 col-form-label">similarity string</label>
-                    <div class="col-sm-5">
-                    <input type="text" class="form-control" id="similarity" name="similarity" placeholder="similarity string" value='<?php echo $_REQUEST["similarity"]; ?>'/>
+                    <div class="col-sm-3">
+                        <input type="text" class="form-control" id="similarity" name="similarity" placeholder="similarity string" value='<?php echo $_REQUEST["similarity"]; ?>'/>
                     </div>
-                    <label for="second" class="col-sm-1 col-form-label">CBD Choice</label>
-                    <div class="col-sm-5">
+                    <div class="col-sm-4">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios1" value="option1" checked>
+                            <label class="form-check-label" for="exampleRadios1">
+                                Level-based CBD
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios2" value="option2">
+                            <label class="form-check-label" for="exampleRadios2">
+                                Symmetric Level-based CBD
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios3" value="option3">
+                            <label class="form-check-label" for="exampleRadios3">
+                                Custom CBD
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="number" name="exampleRadios" id="exeRadios1" value="1">
+                            <label class="form-check-label" for="exeRadios1">
+                                CBD Level
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <textarea class="form-check-input" name="exampleRadios" id="exaios2"></textarea>
+                            <label class="form-check-label" for="exaios2">
+                                Symmetric Level-based CBD
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group row">
