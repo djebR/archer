@@ -134,7 +134,6 @@
     $cbdAnswer = array();
     $instanceURL = getInstances($_REQUEST['class'], $_REQUEST['main'], array('query'=>'query','format'=>'json'), $_REQUEST["limit"], $_REQUEST["similarity"]);
     $instanceArray = json_decode(request($instanceURL), true); 
-    var_dump($instanceArray);
 
     /*
         - Compare the CBDs
@@ -501,7 +500,7 @@
                         + "Number of (DBP) Resources with zero links : " + response.zeroResources1 + "<br/>"
                         + "Number of Triples of (MB) Resources with zero links : " + response.zeroResourcesTriples0 + "<br/>"
                         + "Number of Triples of (DBP) Resources with zero links : " + response.zeroResourcesTriples1 + "</div>"
-                        + "<div class='col-sm-6' id='plotter'></div></div><table class='table stats'><tr>";
+                        + "<div class='col-sm-6' id='plotter' style='padding: 0px;'></div></div><table class='table stats'><tr>";
 
                     for (element in response.LinkedPred){
                         content += '<tr><td>' + response.LinkedPred[element][0] + '</td><td>' + response.LinkedPred[element][1] + '</td><td>' + response.LinkedPred[element][2] + '</td></tr>'
