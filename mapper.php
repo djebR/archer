@@ -1,6 +1,6 @@
 <?php 
 
-    ini_set('max_execution_time', 0); // to get unlimited php script execution time
+    //ini_set('max_execution_time', 0); // to get unlimited php script execution time
     /*
         $class: the focus class, from which we want to get resources
         $limit: number of instances from the focused class
@@ -10,12 +10,12 @@
         $format = 'json';
         
         $query = 
-                "SELECT distinct ?instance  ".(!is_null($sourceSimilarity)?("?instance2"):"")."
+                "SELECT distinct ?source1  ".(!is_null($sourceSimilarity)?("?source2"):"")."
                 WHERE {
-                    ?instance a ".$class." .
+                    ?source1 a ".$class." .
                     ".(!is_null($sourceSimilarity)?("
-                    ?instance <http://www.w3.org/2002/07/owl#sameAs> ?instance2 .
-                    FILTER (CONTAINS(STR(?instance2),'".$sourceSimilarity."'))
+                    ?source1 <http://www.w3.org/2002/07/owl#sameAs> ?source2 .
+                    FILTER (CONTAINS(STR(?source2),'".$sourceSimilarity."'))
                     "):"")."
                 }
                 LIMIT ".$limit;
@@ -26,12 +26,25 @@
         return $searchUrl;
     }
 
-    function getCBD($instance, $source, $parameters){
+    function getCBD($instance, $source, $parameters, $level = 1){
         $query = 
         "SELECT ?predicate ?object
-        WHERE {
-            <".urldecode($instance)."> ?predicate ?object . 
-        }";
+        WHERE {{
+            <".urldecode($instance)."> ?predicate ?object .}
+             ";
+            for ($i=1; $i < $level; $i++) {
+                // loop all the levels
+                $query .= " UNION {<".urldecode($instance)."> ?p0 ?o0 . ";
+
+                for ($j=0; $j < $i; $j++) { 
+                    $query .= "?o{$j} ?p".($j+1)." ?o".($j+1).".";
+                }
+                $query .= "BIND(?p{$i} as ?predicate).";
+                $query .= "BIND(?o{$i} as ?object).";
+                $query .= "}";
+            }
+
+        $query .= "}";
         
             $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
             if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
@@ -39,17 +52,35 @@
         return $searchUrl;
     }
 
-    function getSymCBD($instance, $source, $parameters){
+    function getSymCBD($instance, $source, $parameters, $level = 1){
         $query = 
         "SELECT ?predicate ?object
-        WHERE {
-            {
-                <".urldecode($instance)."> ?predicate ?object . 
-            } UNION {
-                ?object ?predicate <".urldecode($instance).">. 
+        WHERE {{
+            <".urldecode($instance)."> ?predicate ?object .} UNION { ?object ?predicate <".urldecode($instance)."> .}";
+        if($level > 1) {
+            for ($i=1; $i < $level; $i++) {
+                // loop all the levels
+                $query .= " UNION {<".urldecode($instance)."> ?p0 ?o0 . ";
+
+                for ($j=0; $j < $i; $j++) { 
+                    $query .= "?o{$j} ?p".($j+1)." ?o".($j+1).".";
+                }
+                $query .= "BIND(?p{$i} as ?predicate).";
+                $query .= "BIND(?o{$i} as ?object).";
+                $query .= "} UNION {";
+
+                for ($j=$i; $j > 0; $j--) { 
+                    $query .= "?o".($j)." ?p".($j)." ?o".($j-1)." .";
+                }
+
+                $query .= "?o0 ?p0 <".urldecode($instance).">. ";
+                $query .= "BIND(?p{$i} as ?predicate).";
+                $query .= "BIND(?o{$i} as ?object).";
+                $query .= "}";
             }
-        }";
-        
+        }
+
+        $query .= "}";
             $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
             if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
             
@@ -68,48 +99,45 @@
     }
 
     function request($url){
-    
-    // is curl installed?
-    if (!function_exists('curl_init')){ 
-        die('CURL is not installed!');
-    }
-    
-    // get curl handle
-    $ch= curl_init();
-    
-    // set request url
-    curl_setopt($ch, 
-        CURLOPT_URL, 
-        $url);
-    
-    // return response, don't print/echo
-    curl_setopt($ch, 
-        CURLOPT_RETURNTRANSFER, 
-        true);
-    
-    /*
-    Here you find more options for curl:
-    http://www.php.net/curl_setopt
-    */		
-    
-    $response = curl_exec($ch);
-    
-    curl_close($ch);
-    
-    return $response;
+        
+        // is curl installed?
+        if (!function_exists('curl_init')){ 
+            die('CURL is not installed!');
+        }
+        
+        // get curl handle
+        $ch= curl_init();
+        
+        // set request url
+        curl_setopt($ch, 
+            CURLOPT_URL, 
+            $url);
+        
+        // return response, don't print/echo
+        curl_setopt($ch, 
+            CURLOPT_RETURNTRANSFER, 
+            true);
+        
+        /*
+        Here you find more options for curl:
+        http://www.php.net/curl_setopt
+        */		
+        
+        $response = curl_exec($ch);
+        
+        curl_close($ch);
+        
+        return $response;
     }
 
 
     $cbdAnswer = array();
-
     $instanceURL = getInstances($_REQUEST['class'], $_REQUEST['main'], array('query'=>'query','format'=>'json'), $_REQUEST["limit"], $_REQUEST["similarity"]);
-
     $instanceArray = json_decode(request($instanceURL), true); 
+    var_dump($instanceArray);
 
     /*
-        - Get instances from a class, with limits
-        - Get the CBD for every instance
-        - Compare the CBDs, 
+        - Compare the CBDs
         - extract metrics,
         - use the extracted metrics to query for conjunctions; (Example: get a website from the other source, it will be annotated with the same value that propagated through the link)
 
@@ -193,38 +221,38 @@
                     <div class="col-sm-3">
                         <input type="text" class="form-control" id="similarity" name="similarity" placeholder="similarity string" value='<?php echo $_REQUEST["similarity"]; ?>'/>
                     </div>
-                    <div class="col-sm-4">
-                        <div class="form-check form-check-inline">
+                    <div class="col-sm-2">
+                        <div class="form-check">
                             <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios1" value="option1" checked>
                             <label class="form-check-label" for="exampleRadios1">
                                 Level-based CBD
                             </label>
                         </div>
-                        <div class="form-check form-check-inline">
+                        <div class="form-check">
                             <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios2" value="option2">
                             <label class="form-check-label" for="exampleRadios2">
                                 Symmetric Level-based CBD
                             </label>
                         </div>
-                        <div class="form-check form-check-inline">
+                        <div class="form-check">
                             <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios3" value="option3">
                             <label class="form-check-label" for="exampleRadios3">
                                 Custom CBD
                             </label>
                         </div>
                     </div>
-                    <div class="col-sm-4">
-                        <div class="form-check">
-                            <input class="form-check-input" type="number" name="exampleRadios" id="exeRadios1" value="1">
-                            <label class="form-check-label" for="exeRadios1">
-                                CBD Level
-                            </label>
+                    <div class="col-sm-6">
+                        <div class="form-group row">
+                            <label for="numCBD" class="col-sm-2 col-form-label">CBD Level</label>
+                            <div class="col-sm-10">
+                                <input type="number" name="numCBD" id="numCBD" value="1">
+                            </div>
                         </div>
-                        <div class="form-check">
-                            <textarea class="form-check-input" name="exampleRadios" id="exaios2"></textarea>
-                            <label class="form-check-label" for="exaios2">
-                                Symmetric Level-based CBD
-                            </label>
+                        <div class="form-group row">
+                            <label for="custom" class="col-sm-2 col-form-label">Custom CBD<br/>(Use ?predicate ?object for your output)</label>
+                            <div class="col-sm-10">
+                                <textarea class="form-control" id="custom" name='customCBD' rows="3" disabled="disabled"></textarea>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -287,13 +315,24 @@
                 
                 echo "<td><a href='".$value2["value"]."' target='_blank'><img class='icn' src='assets/img/lnk.png'/></a><a data-toggle='collapse'
                  href='#collapseExample".$key.$key2."' role='button' aria-expanded='false' aria-controls='collapseExample".$key.$key2."'>".urldecode($value2["value"])."<span class='triple{$i} badge badge-dark float-right'>";
-                
-                
-                $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'));
+                $cbdURL = "";
+                switch ($_REQUEST['exampleRadios']) {
+                    case 'option1':
+                        $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'), $_REQUEST['numCBD']);
+                        break;
+                    case 'option2':
+                        $cbdURL = getSymCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'), $_REQUEST['numCBD']);
+                        break;
+                    case 'option3':
+                        $cbdURL = getCustomCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'), $_REQUEST['customCBD']);
+                        break;
+                }
+
                 $cbd = json_decode(request($cbdURL), true); 
                 if(is_array($cbd) && count($cbd["results"]["bindings"]) > 0) {
                     $counter[$i] += count($cbd["results"]["bindings"]);
                     echo count($cbd["results"]["bindings"])."</span></a><div class='collapse' id='collapseExample".$key.$key2."'><div class='card card-body'>";
+                    var_dump($cbdURL);
                     echo "<table class='table'><tr><th>Predicate</th><th>Object</th></tr>";
                     foreach ($cbd["results"]["bindings"] as $key3 => $value3) {
                         echo "<tr>";
@@ -360,6 +399,14 @@
     <script>
 
         $('.deletelater').remove();
+
+        $('[name=exampleRadios]').on('change', function(){
+            if(this.value == 'option3'){
+                $('#custom').prop('disabled', '');
+            } else {
+                $('#custom').prop('disabled', 'disabled');
+            }
+        });
 
         $('.analysis').on('click', function(){
             var that = $(this);
