@@ -2,8 +2,7 @@
 
     //ini_set('max_execution_time', 0); // to get unlimited php script execution time
     /*
-        $class: the focus class, from which we want to get resources
-        $limit: number of instances from the focused class
+        Helper functions
     */
 
     function getInstances($class, $source, $parameters, $limit = 500, $sourceSimilarity = null){
@@ -26,11 +25,12 @@
         return $searchUrl;
     }
 
-    function getCBD($instance, $source, $parameters, $level = 1){
+    // Change the CBD according to definition
+    function getCBD($instance, $source, $parameters, $level = 1, $symmetric = false){
         $query = 
         "SELECT ?predicate ?object
-        WHERE {{
-            <".urldecode($instance)."> ?predicate ?object .}
+        WHERE {
+            {<".urldecode($instance)."> ?predicate ?object .}
              ";
             for ($i=1; $i < $level; $i++) {
                 // loop all the levels
@@ -51,6 +51,7 @@
             
         return $searchUrl;
     }
+
 
     function getSymCBD($instance, $source, $parameters, $level = 1){
         $query = 
@@ -135,12 +136,6 @@
     $instanceURL = getInstances($_REQUEST['class'], $_REQUEST['main'], array('query'=>'query','format'=>'json'), $_REQUEST["limit"], $_REQUEST["similarity"]);
     $instanceArray = json_decode(request($instanceURL), true); 
 
-    /*
-        - Compare the CBDs
-        - extract metrics,
-        - use the extracted metrics to query for conjunctions; (Example: get a website from the other source, it will be annotated with the same value that propagated through the link)
-
-    */
 ?>
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
@@ -320,7 +315,7 @@
                         $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'), $_REQUEST['numCBD']);
                         break;
                     case 'option2':
-                        $cbdURL = getSymCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'), $_REQUEST['numCBD']);
+                        $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'), $_REQUEST['numCBD'], true);
                         break;
                     case 'option3':
                         $cbdURL = getCustomCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'), $_REQUEST['customCBD']);
