@@ -6,7 +6,6 @@
     */
 
     function getInstances($class, $source, $parameters, $limit = 500, $sourceSimilarity = null){
-        $format = 'json';
         
         $query = 
                 "SELECT distinct ?source1  ".(!is_null($sourceSimilarity)?("?source2"):"")."
@@ -21,37 +20,60 @@
     
         $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
         if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
+        else $searchUrl .= '&format=json';
 
         return $searchUrl;
     }
 
     // Change the CBD according to definition
     function getCBD($instance, $source, $parameters, $level = 1, $symmetric = false){
-        $query = 
-        "SELECT ?predicate ?object
-        WHERE {
-            {<".urldecode($instance)."> ?predicate ?object .}
-             ";
-            for ($i=1; $i < $level; $i++) {
-                // loop all the levels
-                $query .= " UNION {<".urldecode($instance)."> ?p0 ?o0 . ";
+        
+        // -- QUERY START
+        $query =    "SELECT ?predicate ?object WHERE {";
 
-                for ($j=0; $j < $i; $j++) { 
+        $query .= "{<".urldecode($instance)."> ?predicate ?object .}
+                        UNION 
+                        {<".urldecode($instance)."> ?p ?o.
+                         ?o ?predicate ?object.
+                         filter(isBlank(?o)).}
+                    ";
+
+        // loop through level
+        for ($i=1; $i < $level; $i++) {
+            $query .= " UNION {<".urldecode($instance)."> ?p0 ?o0 . ";
+            for ($j=0; $j < $i-1; $j++) { 
+                $query .= "?o{$j} ?p".($j+1)." ?o".($j+1).".";
+            }
+            $query .= "?o".($i-1)." ?predicate ?object. }";
+        }
+
+        if($symmetric) {
+            $query .= "{?predicate ?object <".urldecode($instance)."> .}
+                UNION 
+                {<".urldecode($instance)."> ?p ?o.
+                    ?o ?predicate ?object.
+                    filter(isBlank(?o)).}
+            ";
+
+            // loop through level
+            for ($i=1; $i < $level; $i++) {
+                $query .= " UNION {<".urldecode($instance)."> ?p0 ?o0 . ";
+                for ($j=0; $j < $i-1; $j++) { 
                     $query .= "?o{$j} ?p".($j+1)." ?o".($j+1).".";
                 }
-                $query .= "BIND(?p{$i} as ?predicate).";
-                $query .= "BIND(?o{$i} as ?object).";
-                $query .= "}";
+                $query .= "?o".($i-1)." ?predicate ?object. }";
             }
+        }
 
         $query .= "}";
-        
-            $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
-            if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
+        // -- QUERY END
+
+        // Create the URL to query
+        $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
+        if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
             
         return $searchUrl;
     }
-
 
     function getSymCBD($instance, $source, $parameters, $level = 1){
         $query = 
