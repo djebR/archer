@@ -26,17 +26,19 @@
     }
 
     // Change the CBD according to definition
-    function getCBD($instance, $source, $parameters, $level = 1, $symmetric = false){
+    function getCBD($instance, $source, $parameters, $level = 1, $symmetric = false, $withBlanks = false){
         
         // -- QUERY START
-        $query =    "SELECT ?predicate ?object WHERE {";
+        $query =    "SELECT DISTINCT ?predicate ?object WHERE {";
+        $query .= " {<".urldecode($instance)."> ?predicate ?object .}";
 
-        $query .= "{<".urldecode($instance)."> ?predicate ?object .}
-                        UNION 
-                        {<".urldecode($instance)."> ?p ?o.
-                         ?o ?predicate ?object.
-                         filter(isBlank(?o)).}
-                    ";
+        if($symmetric) {
+            $query .= " UNION {
+                            <".urldecode($instance)."> ?p ?o.
+                            ?o ?predicate ?object.
+                            filter(isBlank(?o)).
+                        }";
+        }
 
         // loop through level
         for ($i=1; $i < $level; $i++) {
@@ -517,10 +519,15 @@
                         + "Number of (DBP) Resources with zero links : " + response.zeroResources1 + "<br/>"
                         + "Number of Triples of (MB) Resources with zero links : " + response.zeroResourcesTriples0 + "<br/>"
                         + "Number of Triples of (DBP) Resources with zero links : " + response.zeroResourcesTriples1 + "</div>"
-                        + "<div class='col-sm-6' id='plotter' style='padding: 0px;'></div></div><table class='table stats'><tr>";
+                        + "<div class='col-sm-6' id='plotter' style='padding: 0px;'></div></div><br/><table class='table stats'><tr>";
+
+                    content += '<tr><th>Predicate S1</th><th>Predicate S2</th><th>Links</th><th>Probability of Existance</th></tr>'
 
                     for (element in response.LinkedPred){
-                        content += '<tr><td>' + response.LinkedPred[element][0] + '</td><td>' + response.LinkedPred[element][1] + '</td><td>' + response.LinkedPred[element][2] + '</td></tr>'
+                        if(response.LinkedPred[element][3]) content += '<tr>'
+                        else content += '<tr style="display:none;">'
+                        
+                        content += '<td>' + response.LinkedPred[element][0] + '</td><td>' + response.LinkedPred[element][1] + '</td><td>' + response.LinkedPred[element][2] + '</td><td>' + response.LinkedPred[element][5] + ' %</td></tr>'
                     };
                     content += "</table></div>";
 
