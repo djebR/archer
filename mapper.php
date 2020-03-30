@@ -235,6 +235,13 @@
                     </div>
                 </div>
                 <div class="form-group row">
+                    <div class="col-sm-1">
+                        <button type="button" id='checkInstance' class="btn btn-primary">Check instances</button>
+                    </div>
+                    <div class="col-sm-11" id='instCount'>
+                    </div>
+                </div>
+                <div class="form-group row">
                     <label for="similarity" class="col-sm-1 col-form-label">similarity string</label>
                     <div class="col-sm-3">
                         <input type="text" class="form-control" id="similarity" name="similarity" placeholder="similarity string" value='<?php echo $_REQUEST["similarity"]; ?>'/>
@@ -424,6 +431,25 @@
             } else {
                 $('#custom').prop('disabled', 'disabled');
             }
+        });
+
+        $('#checkInstance').on('click', function(){
+
+            var that = $(this);
+            var dataSource = $('#main').val();
+            var resourceClass = $('#class').val();
+            that.prop("disabled", "disabled");
+            that.append('<span id="spnner" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>')
+            $.ajax({
+                type: "get",
+                url: "counter.php?source=" + dataSource + "&class=" + resourceClass,
+                dataType: "json",
+                success: function (response) {
+                    $('#instCount').html(response.counter + " instances to query")
+                    that.prop('disabled', '');
+                    $('#spnner').remove()
+                }
+            });
         });
 
         $('.analysis').on('click', function(){
