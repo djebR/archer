@@ -26,54 +26,18 @@
     }
 
     // Change the CBD according to definition
-    function getCBD($instance, $source, $parameters, $level = 1, $symmetric = false, $withBlanks = false){
+        // We limit the number of triples to 300 so that it doesn't explode
+    function getCBD($instance, $source, $parameters, $level = 1, $limit= 300, $symmetric = false, $withBlanks = false){
         
         // -- QUERY START
-        $query =    "SELECT DISTINCT ?predicate ?object WHERE {";
-        $query .= " {<".urldecode($instance)."> ?predicate ?object .}";
-
-        if($symmetric) {
-            $query .= " UNION {
-                            <".urldecode($instance)."> ?p ?o.
-                            ?o ?predicate ?object.
-                            filter(isBlank(?o)).
-                        }";
-        }
-
-        // loop through level
-        for ($i=1; $i < $level; $i++) {
-            $query .= " UNION {<".urldecode($instance)."> ?p0 ?o0 . ";
-            for ($j=0; $j < $i-1; $j++) { 
-                $query .= "?o{$j} ?p".($j+1)." ?o".($j+1).".";
-            }
-            $query .= "?o".($i-1)." ?predicate ?object. }";
-        }
-
-        if($symmetric) {
-            $query .= "{?predicate ?object <".urldecode($instance)."> .}
-                UNION 
-                {<".urldecode($instance)."> ?p ?o.
-                    ?o ?predicate ?object.
-                    filter(isBlank(?o)).}
-            ";
-
-            // loop through level
-            for ($i=1; $i < $level; $i++) {
-                $query .= " UNION {<".urldecode($instance)."> ?p0 ?o0 . ";
-                for ($j=0; $j < $i-1; $j++) { 
-                    $query .= "?o{$j} ?p".($j+1)." ?o".($j+1).".";
-                }
-                $query .= "?o".($i-1)." ?predicate ?object. }";
-            }
-        }
-
-        $query .= "}";
+            // Clean Comments
+        $query = str_replace("%SUBJECT%", urldecode($instance), file_get_contents("queries/cbd.rq"));
+        $query = str_replace("%LIMITED%", $limit, $query);
         // -- QUERY END
 
         // Create the URL to query
-        $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
-        if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
-            
+        $searchUrl = $source ."?". $parameters['query'].'='. urlencode($query) .'&format=json';
+
         return $searchUrl;
     }
 
@@ -327,7 +291,7 @@
             echo "<th scope='col'>".$value."</th>";
         }
         echo "<th scope='col'>Analyze</th></tr>";
-
+        $cbdURL = "";
         $all = count($instanceArray["results"]["bindings"]);
         $nom = 0;
         foreach ($instanceArray["results"]["bindings"] as $key => $value) {
@@ -343,7 +307,7 @@
                 $cbdURL = "";
                 switch ($_REQUEST['exampleRadios']) {
                     case 'option1':
-                        $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'), $_REQUEST['numCBD']);
+                        $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query'));
                         break;
                     case 'option2':
                         $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'), $_REQUEST['numCBD'], true);
@@ -357,7 +321,6 @@
                 if(is_array($cbd) && count($cbd["results"]["bindings"]) > 0) {
                     $counter[$i] += count($cbd["results"]["bindings"]);
                     echo count($cbd["results"]["bindings"])."</span></a><div class='collapse' id='collapseExample".$key.$key2."'><div class='card card-body'>";
-                    var_dump($cbdURL);
                     echo "<table class='table'><tr><th>Predicate</th><th>Object</th></tr>";
                     foreach ($cbd["results"]["bindings"] as $key3 => $value3) {
                         echo "<tr>";
@@ -547,13 +510,11 @@
                         + "Number of Triples of (DBP) Resources with zero links : " + response.zeroResourcesTriples1 + "</div>"
                         + "<div class='col-sm-6' id='plotter' style='padding: 0px;'></div></div><br/><table class='table stats'><tr>";
 
-                    content += '<tr><th>Predicate S1</th><th>Predicate S2</th><th>Links</th><th>Probability of Existance</th></tr>'
+                    content += '<tr><th>Key</th><th>Frequency</th><th>Existance of a Link per SameAs</th></tr>'
 
-                    for (element in response.LinkedPred){
-                        if(response.LinkedPred[element][3]) content += '<tr>'
-                        else content += '<tr style="display:none;">'
-                        
-                        content += '<td>' + response.LinkedPred[element][0] + '</td><td>' + response.LinkedPred[element][1] + '</td><td>' + response.LinkedPred[element][2] + '</td><td>' + response.LinkedPred[element][5] + ' %</td></tr>'
+                    for (element in response.hashes){
+                        content += '<tr>'                        
+                        content += '<td>' + element + '</td><td>' + response.hashes[element] + '</td></tr>'
                     };
                     content += "</table></div>";
 

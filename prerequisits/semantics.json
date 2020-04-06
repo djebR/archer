@@ -1,0 +1,28 @@
+{
+    "http:\/\/www.w3.org\/2000\/01\/rdf-schema#label":
+    [0,1,0,0,0],
+    "http:\/\/xmlns.com\/foaf\/0.1\/name":
+    [0,1,0,0,0],
+    "http:\/\/dbtune.org\/musicbrainz\/resource\/vocab\/sortname":
+    [0,1,0,0,0],
+    "http:\/\/dbtune.org\/musicbrainz\/resource\/vocab\/artist_type":
+    [0,1,0,0,0],
+    "http:\/\/dbpedia.org\/property\/children":
+    [0,1,0,0,0],
+    "http:\/\/dbtune.org\/musicbrainz\/resource\/vocab\/alias":
+    [0,1,0,0,0],
+    "http:\/\/xmlns.com\/foaf\/0.1\/homepage":
+    [0,1,0,0,0],
+    "http:\/\/dbpedia.org\/ontology\/wikiPageExternalLink":
+    [0,1,0,0,0],
+    "http:\/\/dbtune.org\/musicbrainz\/resource\/vocab\/artist_tag_count":
+    [0,1,0,0,0],
+    "http:\/\/xmlns.com\/foaf\/0.1\/givenName":
+    [0,1,0,0,0],
+    "http:\/\/dbpedia.org\/property\/charts":
+    [0,1,0,0,0],
+    "http:\/\/dbpedia.org\/property\/peak5a":
+    [0,1,0,0,0],
+    "http:\/\/dbpedia.org\/ontology\/alias":
+    [0,1,0,0,0]
+}
