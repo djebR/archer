@@ -121,7 +121,7 @@
 
 
     $cbdAnswer = array();
-    $instanceURL = getInstances($_REQUEST['class'], $_REQUEST['main'], array('query'=>'query','format'=>'json'), $_REQUEST["limit"], $_REQUEST["similarity"]);
+    $instanceURL = getInstances("<".$_REQUEST['class'].">", $_REQUEST['main'], array('query'=>'query','format'=>'json'), $_REQUEST["limit"], $_REQUEST["similarity"]);
     $instanceArray = json_decode(request($instanceURL), true); 
 
 ?>
@@ -139,6 +139,10 @@
     <style>
         body {
             margin: 20px;
+        }
+
+        .col-sm-offset-3 {
+            margin-left: 25%;
         }
 
         .card td, .stats td {
@@ -165,6 +169,18 @@
         .progress {
             margin-top: 11px;
         }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            display: block;
+            overflow-x: hidden;
+            overflow-y: auto;
+            background-color: #2f3850;
+            color: white;
+        }
     </style>
 
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
@@ -173,10 +189,22 @@
 <body>
 
 
-    <h1>Archer</h1>
 
-    <div class="row">
-        <div class="col-12">
+<div class="container-fluid">
+  <div class="row">
+    <div class="sidebar col-sm-3 hidden-xs">
+        <h1>Archer</h1>
+        <p>Property link map</p>
+        <p>Results</p>
+        <ul>
+            <li>Res1</li>
+            <li>Res2</li>
+            <li>Res3</li>
+            <li>Res4</li>
+        </ul>
+        <ul id="list"></ul>
+    </div>
+    <div class="main col-sm-9 col-sm-offset-3">
             <form action='mapper.php' method="POST">
                 <div class="form-group row">
                     <label for="class" class="col-sm-1 col-form-label">Class</label>
@@ -199,50 +227,9 @@
                     </div>
                 </div>
                 <div class="form-group row">
-                    <div class="col-sm-1">
-                        <button type="button" id='checkInstance' class="btn btn-primary">Check instances</button>
-                    </div>
-                    <div class="col-sm-11" id='instCount'>
-                    </div>
-                </div>
-                <div class="form-group row">
                     <label for="similarity" class="col-sm-1 col-form-label">similarity string</label>
                     <div class="col-sm-3">
                         <input type="text" class="form-control" id="similarity" name="similarity" placeholder="similarity string" value='<?php echo $_REQUEST["similarity"]; ?>'/>
-                    </div>
-                    <div class="col-sm-2">
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios1" value="option1" checked>
-                            <label class="form-check-label" for="exampleRadios1">
-                                Level-based CBD
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios2" value="option2">
-                            <label class="form-check-label" for="exampleRadios2">
-                                Symmetric Level-based CBD
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios3" value="option3">
-                            <label class="form-check-label" for="exampleRadios3">
-                                Custom CBD
-                            </label>
-                        </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="form-group row">
-                            <label for="numCBD" class="col-sm-2 col-form-label">CBD Level</label>
-                            <div class="col-sm-10">
-                                <input type="number" name="numCBD" id="numCBD" value="1">
-                            </div>
-                        </div>
-                        <div class="form-group row">
-                            <label for="custom" class="col-sm-2 col-form-label">Custom CBD<br/>(Use ?predicate ?object for your output)</label>
-                            <div class="col-sm-10">
-                                <textarea class="form-control" id="custom" name='customCBD' rows="3" disabled="disabled"></textarea>
-                            </div>
-                        </div>
                     </div>
                 </div>
                 <div class="form-group row">
@@ -259,14 +246,13 @@
                     </div>
                 </div>
             </form>
-        </div>
-    </div>
+        
+        <p>
+            <a class="btn btn-primary dropdown-toggle" data-toggle="collapse" href="#allResults" role="button" aria-expanded="true" aria-controls="allResults">
+                Collapse Results
+            </a>
+        </p>
 
-    <p>
-        <a class="btn btn-primary dropdown-toggle" data-toggle="collapse" href="#allResults" role="button" aria-expanded="true" aria-controls="allResults">
-            Collapse Results
-        </a>
-    </p>
 
     <?php
         $files = glob('results/*.json'); // get all file names
@@ -275,7 +261,6 @@
                 unlink($file); // delete file
         }
 
- 
         // Results start
         echo "<div class='collapse show' id='allResults'>";
 
@@ -305,6 +290,9 @@
                 echo "<td><a href='".$value2["value"]."' target='_blank'><img class='icn' src='assets/img/lnk.png'/></a><a data-toggle='collapse'
                  href='#collapseExample".$key.$key2."' role='button' aria-expanded='false' aria-controls='collapseExample".$key.$key2."'>".urldecode($value2["value"])."<span class='triple{$i} badge badge-dark float-right'>";
                 $cbdURL = "";
+                $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query'));
+                /*
+                // Further dev
                 switch ($_REQUEST['exampleRadios']) {
                     case 'option1':
                         $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query'));
@@ -316,7 +304,7 @@
                         $cbdURL = getCustomCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'), $_REQUEST['customCBD']);
                         break;
                 }
-
+                */
                 $cbd = json_decode(request($cbdURL), true); 
                 if(is_array($cbd) && count($cbd["results"]["bindings"]) > 0) {
                     $counter[$i] += count($cbd["results"]["bindings"]);
@@ -361,24 +349,28 @@
         echo "</div>";
         // Results end
     ?>
-
-    <div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalCenterTitle">Analyzing </h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+    
+        <div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalCenterTitle">Analyzing </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
+        </div>
     </div>
-    </div>
+  </div>
+</div>
+
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
@@ -394,25 +386,6 @@
             } else {
                 $('#custom').prop('disabled', 'disabled');
             }
-        });
-
-        $('#checkInstance').on('click', function(){
-
-            var that = $(this);
-            var dataSource = $('#main').val();
-            var resourceClass = $('#class').val();
-            that.prop("disabled", "disabled");
-            that.append('<span id="spnner" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>')
-            $.ajax({
-                type: "get",
-                url: "counter.php?source=" + dataSource + "&class=" + resourceClass,
-                dataType: "json",
-                success: function (response) {
-                    $('#instCount').html(response.counter + " instances to query")
-                    that.prop('disabled', '');
-                    $('#spnner').remove()
-                }
-            });
         });
 
         $('.analysis').on('click', function(){
@@ -518,7 +491,7 @@
                     };
                     content += "</table></div>";
 
-                    $('body').append(content);
+                    $('.main').append(content);
 
                     var trace1 = {
                     y: y0,

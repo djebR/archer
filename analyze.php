@@ -1,33 +1,31 @@
 <?php
 
-    //header('Content-Type: application/json');
+    header('Content-Type: application/json');
     
-    // Weights for semantic similarity: symmetric, asymmetric, reflexive, transitive, functional (assign weights that sum up to 1)
-    $Weights = array(0.1,0.1,0.1,0.1,0.6);
+    // Helper functions
 
-    // We need
-    // 1- Syntactic analysis: extract link candidates
-    // 2- Semantic Similarity: check what predicates are the same
-    // 3- Combine both to get the uncertainty
-
+    // dotProduct: dot product of two vectors
     function dotProduct($v1, $v2){
         return array_sum(array_map(function($a, $b) {return $a * $b;}, $v1, $v2));
     }
 
-    function magnitude($point) {
+    // magnitude: sqrt(sum(vector with each element to the power of 2))
+    function magnitude($v) {
         $squares = array_map(function($x) {
             return pow($x, 2);
-        }, $point);
+        }, $v);
         return sqrt(array_reduce($squares, function($a, $b) {
             return $a + $b;
         }));
     }
 
+    // cosine: dot(a,b)/(magnitude(a) * magnitude(b))
     function cosine($v1, $v2){
         // Calculate the cosine similarity between $v1 and $v2 using predefined weights
         return round(dotProduct($v1, $v2) / (magnitude($v1) * magnitude($v2)), 3);
     }
 
+    // similarity: for syntactic similarity between two objects
     function similarity($s1, $s2, $type = 'default'){
         $sim = false;
         switch ($type) {
@@ -43,7 +41,6 @@
         }
         return $sim;
     }
-
 
     if(isset($_REQUEST['key']) && $_REQUEST['key'] >= 0 && file_exists("results/0_".$_REQUEST['key'].".json") && file_exists("results/1_".$_REQUEST['key'].".json")){
         // Analyse one line 
@@ -94,7 +91,11 @@
     }
     else
     {
-        // Complete analysis
+        // ********************************************
+        //
+        //           Complete analysis
+        //
+        // ********************************************
 
         $totalTriples0 = 0;
         $totalTriples1 = 0;
@@ -111,10 +112,13 @@
         // optional
         $threshold = 0;
         $simm = 0;
+        // Weights for semantic similarity: symmetric, reflexive, transitive, functional (assign weights that sum up to 1)
+        $Weights = array(0.1,0.1,0.1,0.7);
 
-        $fileCount = floor(count(glob("results/*.json"))/2);
+        // For semantics of each predicate (sym, reflex, trans, funct)
         $predicateSemantics = json_decode(file_get_contents("prerequisits/semantics.json"), true);
 
+        $fileCount = floor(count(glob("results/*.json"))/2);
 
         for($key = 0; $key < $fileCount; $key++){
 
@@ -169,42 +173,45 @@
         foreach ($LinkedPred as $cbdID => $sublinks) {
             foreach ($sublinks as $sublink) {
                 // initialize cbdID keys for each predicate Couple, we can track them later using array_keys
-                $SemanticPred[$sublink[0]->predicate."%%".$sublink[1]->predicate][$cbdID][] = array($sublink[0],$sublink[1]);
-                $SemanticPred[$sublink[0]->predicate."%%".$sublink[1]->predicate]['preds'] = array($sublink[0]->predicate,$sublink[1]->predicate);
+                $SemanticPred[$sublink[0]->predicate."%%".$sublink[1]->predicate][$cbdID][] = array($sublink[0]->object, $sublink[1]->object, $sublink[2]); //the two objects and their similarity
+                $SemanticPred[$sublink[0]->predicate."%%".$sublink[1]->predicate]['preds'] = array($sublink[0]->predicate, $sublink[1]->predicate);
             }
         }
+        /*
+                // we need to grab the semantic properties of all distinct predicates, in order to compare them using cosine similarity
+                // done either by: providing a schema (mostly rdf, rdfs, foaf, the known ones)
+                // analysing the behaviour of each property inside the cbd (this basically means analysing by hand each and every property, based on the whole dataset so that we don't lose semantics, unless if we augment the dataset beforehand)
 
-        // we need to grab the semantic properties of all distinct predicates, in order to compare them using cosine similarity
-        // done either by: providing a schema (mostly rdf, rdfs, foaf, the known ones)
-        // analysing the behaviour of each property inside the cbd (this basically means analysing by hand each and every property, based on the whole dataset so that we don't lose semantics, unless if we augment the dataset beforehand)
+                // We assume that we have, for each predicate, a vector $Pred[Assoc-PredicateURI] of ones and zeros holding the next properties (symmetric, asymmetric, reflexive, transitive, Functional) issued from analysing the ontologies of the data sources (later for practise, we use existing known ontologies, and we learn for the rest)
+                // Example: rdfs:label (0,1,0,0,0)
+                //          rdfs:subClass (0,1,1,1,0)
 
-        // We assume that we have, for each predicate, a vector $Pred[Assoc-PredicateURI] of ones and zeros holding the next properties (symmetric, asymmetric, reflexive, transitive, Functional) issued from analysing the ontologies of the data sources (later for practise, we use existing known ontologies, and we learn for the rest)
-        // Example: rdfs:label (0,1,0,0,0)
-        //          rdfs:subClass (0,1,1,1,0)
+                // Calculate $semanticTag from all triples annotated with that specific property, to know its semantic content
+                // Analyse for 5 properties: (symmetric, asymmetric, reflexive, transitive, Functional)
+                    // Individual analysis, since we will be comparing two different properties from different data source
 
-        // Calculate $semanticTag from all triples annotated with that specific property, to know its semantic content
-        // Analyse for 5 properties: (symmetric, asymmetric, reflexive, transitive, Functional)
-            // Individual analysis, since we will be comparing two different properties from different data source
+                    
+                        Hypothesis (for later): 
+                        - Functional: owl:maxCardinality = 1; from the same subject
+                        - Transitive: find at least three triples where s p o, o p n, s p n
+                        - Reflexive: find at least one triple with s p s
+                        - symmetric: find at least two triples with s p o, o p s
+                        - asymmetric: find no triples with s p o, o p s
+            
+                        foreach (array_keys($sublink) as $cbdID => $triplesArray) {
+                            foreach ($triplesArray as $triples) {
+                                $triples[0]->object;
+                                $triples[1]->object;
+                            }
+                        }
+                    
 
-            /*
-                Hypothesis (for later): 
-                - Functional: owl:maxCardinality = 1; from the same subject
-                - Transitive: find at least three triples where s p o, o p n, s p n
-                - Reflexive: find at least one triple with s p s
-                - symmetric: find at least two triples with s p o, o p s
-                - asymmetric: find no triples with s p o, o p s
-    
-                foreach (array_keys($sublink) as $cbdID => $triplesArray) {
-                    foreach ($triplesArray as $triples) {
-                        $triples[0]->object;
-                        $triples[1]->object;
-                    }
-                }
-            */
+                    // for now, if the property doesn't exist in the semantic tag, just ask the sparql endpoint about it
+                    // + We can have a ready-to-use json
+                    // - we need to query the superproperties as well
 
-            // for now, if the property doesn't exist in the semantic tag, just ask the sparql endpoint about it
-            // + We can have a ready-to-use json
-            // - we need to query the superproperties as well
+                    // Afterwards and using those properties, we can establish the semantics of the sublinks
+        */
 
         foreach ($SemanticPred as $couple => $sublink) {
             if(!isset($hashes[$couple])){
@@ -213,11 +220,19 @@
                 $v2 = $predicateSemantics[$sublink['preds'][1]];
                 
                 // initialize cbdID keys for each predicate Couple, we can track them later using array_keys
-                $hashes[$couple]['count'] = round((count(array_keys($sublink))-1)/$fileCount, 2);
-                $hashes[$couple]['sem'] = cosine($v1, $v2);
+                $hashes[$couple]['count'] = round((count(array_keys($sublink))-1)/$fileCount, 2);   // number of CBDs with this link (at least once)
+                $hashes[$couple]['semSym'] = cosine($v1, $v2);                                         // Similarity between predicate semantics
+                
+                // Sublink semantic analysis
+                foreach ($sublink as $CBD => $CBDtriples) {
+                    if($CBD == 'preds') continue;
+                    // Statistically see if there is one value per CBD
+                }
                 $hashes[$couple]['preds'] = array($sublink['preds'][0], $sublink['preds'][1]);
 
-                echo "cosine ".$couple." is ". $hashes[$couple]['sem'] ."<br>";
+                //Statistical model for: Subsumption (rdfs:subPropertyOf), Identity complete or partial (owl:equivalentProperty), Inverse (owl:inverseOf)
+                // The vector may judge either proportionality (identity or subsumption) or inverse proportionality (disjointness)
+                $hashes[$couple]['linkVec'] = array(0,0,0,0);
             }
         }
         
