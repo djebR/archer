@@ -123,7 +123,7 @@
     $cbdAnswer = array();
     $instanceURL = getInstances("<".$_REQUEST['class'].">", $_REQUEST['main'], array('query'=>'query','format'=>'json'), $_REQUEST["limit"], $_REQUEST["similarity"]);
     $instanceArray = json_decode(request($instanceURL), true); 
-
+    $instanceCount = count($instanceArray["results"]["bindings"]);
 ?>
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
@@ -175,6 +175,7 @@
             top: 0;
             bottom: 0;
             left: 0;
+            padding: 20px;
             display: block;
             overflow-x: hidden;
             overflow-y: auto;
@@ -194,9 +195,19 @@
   <div class="row">
     <div class="sidebar col-sm-3 hidden-xs">
         <h1>Archer</h1>
-        <p>Property link map</p>
-        <p>Results</p>
+        <p>Show full results</p>
+        <p>Select a link</p>
         <ul>
+            <?php
+                if(isset($_REQUEST['class'])){
+                    foreach ($instanceArray["results"]["bindings"] as $key => $value) {
+                        echo "<li><a href='#' data-value='$key'>" . $value[''] . "</a></li>";
+                    }
+                } else {
+                    
+                }
+                    
+            ?>
             <li>Res1</li>
             <li>Res2</li>
             <li>Res3</li>
@@ -254,120 +265,119 @@
         </p>
 
 
-    <?php
-        $files = glob('results/*.json'); // get all file names
-        foreach($files as $file){ // iterate files
-            if(is_file($file))
-                unlink($file); // delete file
-        }
-
-        // Results start
-        echo "<div class='collapse show' id='allResults'>";
-
-        echo "<table class='table table-bordered' id='results'>";
-        $counter = array(0 => 0, 1 => 0);
-        ob_start();
-        ob_implicit_flush(true);
-        ob_end_flush();
-
-        echo "<tr>";
-        echo "<th scope='col'>N°</th>";
-        foreach ($instanceArray["head"]["vars"] as $key => $value) {
-            echo "<th scope='col'>".$value."</th>";
-        }
-        echo "<th scope='col'>Analyze</th></tr>";
-        $cbdURL = "";
-        $all = count($instanceArray["results"]["bindings"]);
-        $nom = 0;
-        foreach ($instanceArray["results"]["bindings"] as $key => $value) {
-            $nom++;
-            $percent = round($nom*100/$all);
-            echo "<script class='deletelater'>document.getElementById('progress-bar').setAttribute('style', 'width:{$percent}% !important;')</script>";
-            $i = 0;
-            echo "<tr><th scope='row'>".($key+1)."</th>";
-            foreach ($value as $key2 => $value2) {
-                
-                echo "<td><a href='".$value2["value"]."' target='_blank'><img class='icn' src='assets/img/lnk.png'/></a><a data-toggle='collapse'
-                 href='#collapseExample".$key.$key2."' role='button' aria-expanded='false' aria-controls='collapseExample".$key.$key2."'>".urldecode($value2["value"])."<span class='triple{$i} badge badge-dark float-right'>";
-                $cbdURL = "";
-                $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query'));
-                /*
-                // Further dev
-                switch ($_REQUEST['exampleRadios']) {
-                    case 'option1':
-                        $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query'));
-                        break;
-                    case 'option2':
-                        $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'), $_REQUEST['numCBD'], true);
-                        break;
-                    case 'option3':
-                        $cbdURL = getCustomCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'), $_REQUEST['customCBD']);
-                        break;
-                }
-                */
-                $cbd = json_decode(request($cbdURL), true); 
-                if(is_array($cbd) && count($cbd["results"]["bindings"]) > 0) {
-                    $counter[$i] += count($cbd["results"]["bindings"]);
-                    echo count($cbd["results"]["bindings"])."</span></a><div class='collapse' id='collapseExample".$key.$key2."'><div class='card card-body'>";
-                    echo "<table class='table'><tr><th>Predicate</th><th>Object</th></tr>";
-                    foreach ($cbd["results"]["bindings"] as $key3 => $value3) {
-                        echo "<tr>";
-                            echo "<td>".$value3["predicate"]["value"]."</td>";
-                            echo "<td>".$value3["object"]["value"]."</td>";
-                        echo "</tr>";
-                        $cbdAnswer[$key][$i][] = array("subject" => $value2["value"], "predicate" =>$value3["predicate"]["value"], "object" => $value3["object"]["value"]);
-                    }
-                    echo "</table>";
-                    $fp = fopen("results/{$i}_{$key}.json", 'w');
-                    fwrite($fp, json_encode($cbdAnswer[$key][$i]));
-                    fclose($fp);
-
-                } else {
-                    echo "0</span></a><div class='collapse' id='collapseExample".$key.$key2."'><div class='card card-body'>";
-                    $fp = fopen("results/{$i}_{$key}.json", 'w');
-                    fwrite($fp, json_encode(array()));
-                    fclose($fp);
-
-                }
-                echo "</div></div></td>";
-
-                $i += 1;
+        <?php
+            $files = glob('results/*.json'); // get all file names
+            foreach($files as $file){ // iterate files
+                if(is_file($file))
+                    unlink($file); // delete file
             }
 
-            echo "<td><a class='analysis' href='#' data-key='{$key}' data-toggle='modal' data-target='#exampleModalCenter'>Analyze</a></td></tr>";
-        }
+            // Results start
+            echo "<div class='collapse show' id='allResults'>";
 
-        echo "<tr>
-                <td>Total</td>
-                <td><span id='count0' class='badge badge-dark float-right'>".$counter[0]."</span></td>
-                <td><span id='count1' class='badge badge-dark float-right'>".$counter[1]."</span></td>
-                <td><span id='count2'></span></td>
-            </tr>
-            </table>";
+            echo "<table class='table table-bordered' id='results'>";
+            $counter = array(0 => 0, 1 => 0);
+            ob_start();
+            ob_implicit_flush(true);
+            ob_end_flush();
+
+            echo "<tr>";
+            echo "<th scope='col'>N°</th>";
+            foreach ($instanceArray["head"]["vars"] as $key => $value) {
+                echo "<th scope='col'>".$value."</th>";
+            }
+            echo "<th scope='col'>Analyze</th></tr>";
+            $cbdURL = "";
+            $nom = 0;
+            foreach ($instanceArray["results"]["bindings"] as $key => $value) {
+                $nom++;
+                $percent = round($nom*100/$instanceCount);
+                echo "<script class='deletelater'>document.getElementById('progress-bar').setAttribute('style', 'width:{$percent}% !important;')</script>";
+                $i = 0;
+                echo "<tr><th scope='row'>".($key+1)."</th>";
+                foreach ($value as $key2 => $value2) {
+                    
+                    echo "<td><a href='".$value2["value"]."' target='_blank'><img class='icn' src='assets/img/lnk.png'/></a><a data-toggle='collapse'
+                    href='#collapseExample".$key.$key2."' role='button' aria-expanded='false' aria-controls='collapseExample".$key.$key2."'>".urldecode($value2["value"])."<span class='triple{$i} badge badge-dark float-right'>";
+                    $cbdURL = "";
+                    $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query'));
+                    /*
+                    // Further dev
+                    switch ($_REQUEST['exampleRadios']) {
+                        case 'option1':
+                            $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query'));
+                            break;
+                        case 'option2':
+                            $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'), $_REQUEST['numCBD'], true);
+                            break;
+                        case 'option3':
+                            $cbdURL = getCustomCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'), $_REQUEST['customCBD']);
+                            break;
+                    }
+                    */
+                    $cbd = json_decode(request($cbdURL), true); 
+                    if(is_array($cbd) && count($cbd["results"]["bindings"]) > 0) {
+                        $counter[$i] += count($cbd["results"]["bindings"]);
+                        echo count($cbd["results"]["bindings"])."</span></a><div class='collapse' id='collapseExample".$key.$key2."'><div class='card card-body'>";
+                        echo "<table class='table'><tr><th>Predicate</th><th>Object</th></tr>";
+                        foreach ($cbd["results"]["bindings"] as $key3 => $value3) {
+                            echo "<tr>";
+                                echo "<td>".$value3["predicate"]["value"]."</td>";
+                                echo "<td>".$value3["object"]["value"]."</td>";
+                            echo "</tr>";
+                            $cbdAnswer[$key][$i][] = array("subject" => $value2["value"], "predicate" =>$value3["predicate"]["value"], "object" => $value3["object"]["value"]);
+                        }
+                        echo "</table>";
+                        $fp = fopen("results/{$i}_{$key}.json", 'w');
+                        fwrite($fp, json_encode($cbdAnswer[$key][$i]));
+                        fclose($fp);
+
+                    } else {
+                        echo "0</span></a><div class='collapse' id='collapseExample".$key.$key2."'><div class='card card-body'>";
+                        $fp = fopen("results/{$i}_{$key}.json", 'w');
+                        fwrite($fp, json_encode(array()));
+                        fclose($fp);
+
+                    }
+                    echo "</div></div></td>";
+
+                    $i += 1;
+                }
+
+                echo "<td><a class='analysis' href='#' data-key='{$key}' data-toggle='modal' data-target='#exampleModalCenter'>Analyze</a></td></tr>";
+            }
+
+            echo "<tr>
+                    <td>Total</td>
+                    <td><span id='count0' class='badge badge-dark float-right'>".$counter[0]."</span></td>
+                    <td><span id='count1' class='badge badge-dark float-right'>".$counter[1]."</span></td>
+                    <td><span id='count2'></span></td>
+                </tr>
+                </table>";
 
 
-        echo "</div>";
-        // Results end
-    ?>
-    
+            echo "</div>";
+            // Results end
+        ?>
+        
         <div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalCenterTitle">Analyzing </h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalCenterTitle">Analyzing </h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
                 </div>
             </div>
+            </div>
         </div>
-        </div>
-    </div>
   </div>
 </div>
 

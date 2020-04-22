@@ -25,18 +25,20 @@
         return round(dotProduct($v1, $v2) / (magnitude($v1) * magnitude($v2)), 3);
     }
 
-    // similarity: for syntactic similarity between two objects
-    function similarity($s1, $s2, $type = 'default'){
-        $sim = false;
+    // object similarity: for syntactic similarity between two objects
+    function sym_o($s1, $s2, $type = 'default'){
+        $sim = 0;
         switch ($type) {
-            case 'cosine':
+            case 'jaccard':
                 # code...
                 break;
             case 'levenstein':
                 break;
+            case 'jaro-winkler':
+                break;
             case 'default':
                 // full string match
-                $sim = (strtolower($s1) == strtolower($s2));
+                $sim = (strtolower($s1) == strtolower($s2))?1:0;
                 break;
         }
         return $sim;
@@ -61,7 +63,7 @@
         foreach ($s0 as $triple0) {
             $boo = false;
             foreach ($s1 as $triple1) {
-                if(similarity($triple1->object,$triple0->object)){
+                if(sym_o($triple1->object,$triple0->object)){
                     $count += 1;
                     $boo = true;
                     $possibleLinks[] = array($triple0->predicate, $triple1->predicate);
@@ -74,7 +76,7 @@
         foreach ($s1 as $triple1) {
             $boo = false;
             foreach ($s0 as $triple0) {
-                if(similarity($triple1->object,$triple0->object)) {
+                if(sym_o($triple1->object,$triple0->object)) {
                     $linked1 += 1;
                     break;
                 }
@@ -108,7 +110,8 @@
         $maxNodes0 = 0;
         $maxNodes1 = 0;
         $LinkedPred = array();
-        $semantic = array();
+        $hashes = array();
+        $counts = array();
         // optional
         $threshold = 0;
         $simm = 0;
@@ -129,9 +132,10 @@
             $oldTotal = $totalLinkedNodes0;
             // analyse from -> to links
             foreach ($s0 as $triple0) {
+                isset($counts[0][$key][$triple0->predicate])?$counts[0][$key][$triple0->predicate]++:1;
                 $boo = false;
                 foreach ($s1 as $triple1) {
-                    $simm = similarity($triple1->object,$triple0->object);
+                    $simm = sym_o($triple1->object,$triple0->object);
                     if($simm > 0){
                         $boo = true;
                         $LinkedPred[$key][] = array($triple0, $triple1, $simm);
@@ -148,8 +152,9 @@
             $oldTotal = $totalLinkedNodes1;
             // analyse to -> from links
             foreach ($s1 as $triple1) {
+                isset($counts[1][$key][$triple1->predicate])?$counts[1][$key][$triple1->predicate]++:1;
                 foreach ($s0 as $triple0) {
-                    $simm = similarity($triple1->object,$triple0->object);
+                    $simm = sym_o($triple1->object,$triple0->object);
                     if($simm > 0){
                         $totalLinkedNodes1 += 1;
                         break;
@@ -172,9 +177,7 @@
         // each element of $SemanticPred contains an array of ('Pred', '$i with $i a CBDiD, in each a set of arrays with the triples of the links (to help with $SemanticTag)')
         foreach ($LinkedPred as $cbdID => $sublinks) {
             foreach ($sublinks as $sublink) {
-                // initialize cbdID keys for each predicate Couple, we can track them later using array_keys
-                $SemanticPred[$sublink[0]->predicate."%%".$sublink[1]->predicate][$cbdID][] = array($sublink[0]->object, $sublink[1]->object, $sublink[2]); //the two objects and their similarity
-                $SemanticPred[$sublink[0]->predicate."%%".$sublink[1]->predicate]['preds'] = array($sublink[0]->predicate, $sublink[1]->predicate);
+                $SemanticPred[$sublink[0]->predicate][$sublink[1]->predicate][$cbdID][] = array($sublink[0]->object, $sublink[1]->object, $sublink[2]); //the two objects and their similarity
             }
         }
         /*
@@ -215,12 +218,21 @@
 
         foreach ($SemanticPred as $couple => $sublink) {
             if(!isset($hashes[$couple])){
+                // Mention the predicate couple
+                $hashes[$couple]['preds'] = array($sublink['preds'][0], $sublink['preds'][1]);
+                
+                // Calculate the indicators
+                // I1: 
+                // I2:
+                // I3:
+                // I4:
+
                 // associate the semantic vector to each predicate
-                $v1 = $predicateSemantics[$sublink['preds'][0]];
-                $v2 = $predicateSemantics[$sublink['preds'][1]];
+                // $v1 = $predicateSemantics[$sublink['preds'][0]];
+                // $v2 = $predicateSemantics[$sublink['preds'][1]];
                 
                 // initialize cbdID keys for each predicate Couple, we can track them later using array_keys
-                $hashes[$couple]['count'] = round((count(array_keys($sublink))-1)/$fileCount, 2);   // number of CBDs with this link (at least once)
+                
                 $hashes[$couple]['semSym'] = cosine($v1, $v2);                                         // Similarity between predicate semantics
                 
                 // Sublink semantic analysis
@@ -228,28 +240,20 @@
                     if($CBD == 'preds') continue;
                     // Statistically see if there is one value per CBD
                 }
-                $hashes[$couple]['preds'] = array($sublink['preds'][0], $sublink['preds'][1]);
-
-                //Statistical model for: Subsumption (rdfs:subPropertyOf), Identity complete or partial (owl:equivalentProperty), Inverse (owl:inverseOf)
-                // The vector may judge either proportionality (identity or subsumption) or inverse proportionality (disjointness)
-                $hashes[$couple]['linkVec'] = array(0,0,0,0);
+                
             }
         }
         
         $NumberOfSemanticLinks = count($SemanticPred);
 
         $data = array(
+            "entitiesAnalysed" => $fileCount,
             "totalTriples0" => $totalTriples0,
             "totalTriples1" => $totalTriples1,
             "totalLinkedNodes0" => $totalLinkedNodes0,
             "totalLinkedNodes1" => $totalLinkedNodes1,
-            "zeroResources0" => $zeroResources0,
-            "zeroResources1" => $zeroResources1,
-            "zeroResourcesTriples0" => $zeroResourcesTriples0,
-            "zeroResourcesTriples1" => $zeroResourcesTriples1,
-            "maxNodes0" => $maxNodes0,
-            "maxNodes1" => $maxNodes1,
             "hashes" => $hashes,
+            "count" => $counts
         );
         echo json_encode($data);
 
