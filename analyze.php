@@ -1,8 +1,91 @@
 <?php
+    include('assets/jaro.php');
 
-    header('Content-Type: application/json');
+    // --- Commands for debug purpose only ---------------
+    ini_set('xdebug.var_display_max_depth', '10');
+    ini_set('xdebug.var_display_max_children', '256');
+    ini_set('xdebug.var_display_max_data', '90000');
+    // ----------------------------------------------------
+
+    //header('Content-Type: application/json');
     
     // Helper functions
+
+    // prefixed: give the prefixed version of a uri,
+    // example: for "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" returns "rdf:type"
+    function prefixed($uri){
+        $prefixDB = array(
+            "http://www.w3.org/1999/02/22-rdf-syntax-ns#"       => "rdf",
+            "http://xmlns.com/foaf/0.1/"                        => "foaf",
+            "http://yago-knowledge.org/resource/"               => "yago",
+            "http://www.w3.org/2000/01/rdf-schema#"             => "rdfs",
+            "http://dbpedia.org/ontology/"                      => "dbo",
+            "http://dbpedia.org/property/"                      => "dbp",
+            "http://dbpedia.org/ontology/Person/"               => "dbo-person",
+            "http://dbpedia.org/ontology/Work/"                 => "dbo-work",
+            "http://fr.dbpedia.org/property/"                   => "frdbp",
+            "http://purl.org/goodrelations/v1#"                 => "gr",
+            "http://purl.org/dc/elements/1.1/"                  => "dc",
+            "http://purl.org/linguistics/gold/"                  => "gold",
+            "http://www.w3.org/2002/07/owl#"                    => "owl",
+            "http://data.ordnancesurvey.co.uk/ontology/spatialrelations/"                       => "spacerel",
+            "http://www.w3.org/2004/02/skos/core#"              => "skos",
+            "http://www.opengis.net/ont/geosparql#"             => "geo",
+            "http://www.w3.org/ns/dcat#"                        => "dcat",
+            "http://www.w3.org/2001/XMLSchema#"                 => "xsd",
+            "http://www.loc.gov/mads/rdf/v1#"                   => "madsrdf",
+            "http://purl.org/net/ns/ontology-annot#"            => "ont",
+            "http://id.loc.gov/ontologies/bflc/"                => "bflc",
+            "http://purl.org/linked-data/cube#"                 => "qb",
+            "http://purl.org/xtypes/"                           => "xtypes",
+            "http://rdfs.org/sioc/ns#"                          => "sioc",
+            "http://www.w3.org/ns/org#"                         => "org",
+            "http://www.ontotext.com/"                          => "onto",
+            "http://www.w3.org/ns/prov#"                        => "prov",
+            "http://dbpedia.org/resource/"                      => "dbpedia",
+            "http://www.w3.org/ns/sparql-service-description#"  => "sd",
+            "http://www.w3.org/ns/people#"                      => "gldp",
+            "http://purl.org/rss/1.0/"                          => "rss",
+            "http://search.yahoo.com/searchmonkey/commerce/"    => "commerce",
+            "http://purl.org/dc/terms/"                         => "dcterms",
+            "http://rdfs.org/ns/void#"                          => "void",
+            "http://www.wikidata.org/entity/"                   => "wd",
+            "http://purl.org/ontology/bibo/"                    => "bibo",
+            "http://purl.org/NET/c4dm/event.owl#"               => "event",
+            "http://purl.org/dc/terms/"                         => "dct",
+            "http://www.geonames.org/ontology#"                 => "geonames",
+            "http://rdf.freebase.com/ns/"                       => "fb",
+            "http://purl.org/dc/dcmitype/"                      => "dcmit",
+            "http://purl.org/science/owl/sciencecommons/"       => "sc",
+            "http://www.w3.org/ns/md#"                          => "md",
+            "http://purl.org/prog/"                             => "prog",
+            "http://creativecommons.org/ns#"                    => "cc",
+
+
+            "http://purl.org/ontology/mo/" => "mo", 
+            "http://purl.org/ontology/mbz#" => "mbz", 
+            "http://purl.org/vocab/bio/0.1/" => "bio", 
+            "http://www.holygoat.co.uk/owl/redwood/0.1/tags/" => "tags", 
+            "http://www.lingvoj.org/ontology#" => "lingvoj", 
+            "http://purl.org/vocab/relationship/" => "rel", 
+            "http://dbtune.org/musicbrainz/resource/vocab/" => "vocab", 
+            "http://dbtune.org/musicbrainz/resource/" => "dbtunes", 
+        );
+
+        $base = "";
+
+        $parsed = parse_url($uri);
+        if(isset($parsed['fragment']) && $parsed['fragment'] != "") {
+            // anchored
+            $base = $parsed['fragment'];
+        } else {
+            // slashed
+            $base = basename($uri);
+        }
+
+        $rest = substr($uri, 0, -strlen($base));
+        return $prefixDB[$rest].":".$base;
+    }
 
     // dotProduct: dot product of two vectors
     function dotProduct($v1, $v2){
@@ -25,71 +108,290 @@
         return round(dotProduct($v1, $v2) / (magnitude($v1) * magnitude($v2)), 3);
     }
 
-    // object similarity: for syntactic similarity between two objects
-    function sym_o($s1, $s2, $type = 'default'){
+    // valMatch: syntactic similarity between two "serialized" objects
+    function valMatch($s1, $s2, $type = 'default', $point = 4){
         $sim = 0;
         switch ($type) {
             case 'jaccard':
-                # code...
+                $ss1 = str_split($s1);
+                $ss2 = str_split($s2);
+                $arr_intersection   = array_intersect($ss1, $ss2);
+                $arr_union          = array_merge($ss1, $ss2);
+                $sim                = count( $arr_intersection ) / count( $arr_union );
                 break;
-            case 'levenstein':
+            case 'hamming':
+                $l1 = strlen($s1);
+                $l2 = strlen($s2);
+                $l = min($l1,$l2);
+                $d = 0;
+                for ($i=0;$i<$l;$i++) {
+                    $d += (int) ($s1[$i]!=$s2[$i]);
+                }
+
+                $sim = $d + (int) abs($l1-$l2);
                 break;
             case 'jaro-winkler':
+                $sim = JaroWinkler($s1, $s2);
                 break;
             case 'default':
                 // full string match
                 $sim = (strtolower($s1) == strtolower($s2))?1:0;
                 break;
         }
-        return $sim;
+        return round($sim, $point);
     }
 
-    if(isset($_REQUEST['key']) && $_REQUEST['key'] >= 0 && file_exists("results/0_".$_REQUEST['key'].".json") && file_exists("results/1_".$_REQUEST['key'].".json")){
+    // typeMatch: type similarity between two objects (extension type)
+    function typeMatch($objMeta1, $objMeta2){
+        $result = 0;
+        $a = ($objMeta1['type'] == "uri" && $objMeta2['type'] == "uri");
+        $b = ($objMeta1['type'] == "typed-literal" && $objMeta2['type'] == "typed-literal");
+        $c = (isset($objMeta1['datatype']) && isset($objMeta2['datatype']))?($objMeta1['datatype'] == $objMeta2['datatype']):false;
+
+        if($a || ($b && $c)) $result = 1;
+        return $result;
+    }
+
+    // Predicate similarity: for statistical similarity between two predicates, taking into account the clusters
+    function sym_p($coupleIndex){
+        return round(($Weights['w_stat'] * (count($SemanticPred[$coupleIndex]) - 1) + $Weights['w_sem'] * array_sum($Indicators[$coupleIndex]['I5']))/$fileCount, 4);
+    }
+
+    // Configuration
+        // Object similarity
+        $tau_o = 0.5;
+        $objectSymMethod = (isset($_REQUEST['method']))?$_REQUEST['method']:"default";
+
+    if(isset($_REQUEST['key']) && $_REQUEST['key'] >= 0 && file_exists("results/".$_REQUEST['folder']."/0_".$_REQUEST['key'].".json") && file_exists("results/".$_REQUEST['folder']."/1_".$_REQUEST['key'].".json")){
         // Analyse one line 
 
         $key = $_REQUEST['key'];
         // read files into json objects
-        $s0 = json_decode(file_get_contents("results/0_{$key}.json"));
-        $s1 = json_decode(file_get_contents("results/1_{$key}.json"));
+        $s0 = json_decode(file_get_contents("results/".$_REQUEST['folder']."/0_{$key}.json"));
+        $s1 = json_decode(file_get_contents("results/".$_REQUEST['folder']."/1_{$key}.json"));
 
         $linked0 = 0;
         $linked1 = 0;
-        $count = 0;
+        $linkCount = 0;
+        $perdCount = array();
 
         // This will contain couples of possible links between predicates: useful for ontology alignment purposes
         $possibleLinks = array();
 
         // analyse from -> to links
         foreach ($s0 as $triple0) {
+            if(isset($perdCount[0][prefixed($triple0->predicate)])) $perdCount[0][prefixed($triple0->predicate)]++;
+            else $perdCount[0][prefixed($triple0->predicate)] = 1;
+
             $boo = false;
             foreach ($s1 as $triple1) {
-                if(sym_o($triple1->object,$triple0->object)){
-                    $count += 1;
+                $symo = valMatch($triple1->object,$triple0->object, $objectSymMethod);
+                if($symo > $tau_o){
+                    $linkCount += 1;
                     $boo = true;
-                    $possibleLinks[] = array($triple0->predicate, $triple1->predicate);
+                    $possibleLinks[] = array($triple0->predicate, $triple1->predicate, $symo);
                 }
             }
             if($boo) $linked0 += 1;
         }
 
-        // analyse to -> from links
+        // analyse from <- to links
         foreach ($s1 as $triple1) {
+            if(isset($perdCount[1][prefixed($triple1->predicate)])) $perdCount[1][prefixed($triple1->predicate)]++;
+            else $perdCount[1][prefixed($triple1->predicate)] = 1;
+            
             $boo = false;
             foreach ($s0 as $triple0) {
-                if(sym_o($triple1->object,$triple0->object)) {
-                    $linked1 += 1;
+                $symo = $weights['w_type'] * typeMatch($triple0->objectMeta, $triple1->objectMeta) + $weights[''] * valMatch($triple0->object, $triple1->object, $objectSymMethod);
+                if($symo > $tau_o){
+                    $boo = true;
                     break;
                 }
             }
+            if($boo) $linked1 += 1;
+        }
+
+        $focusPredicates = array();
+        $refPredicates = array();
+        foreach($possibleLinks as $link){
+            $p0     = prefixed($link[0]);
+            $p1     = prefixed($link[1]);
+            $score  = $link[2];
+            if(isset($focusPredicates[$p0][$p1])) $focusPredicates[$p0][$p1] += $score;
+            else $focusPredicates[$p0][$p1] = $score;
+
+            if(isset($refPredicates[$p1][$p0])) $refPredicates[$p1][$p0]++;
+            else $refPredicates[$p1][$p0] = 1;
         }
 
         $data = array(
-            "links" => $count,
+            "links" => $linkCount,
             "nodesFrom" => $linked0,
             "nodesTo" => $linked1,
             "possibleLinkedPred" => $possibleLinks
         );
-        echo json_encode($data);
+
+        ?>
+        
+        <div class='row'>
+            <div class='col-6'>
+                <p>I<sub>1</sub>: <?php echo $linkCount;?></p>
+                <p>I<sub>4</sub>: <?php echo $linkCount;?></p>
+            </div>
+            <div class='col-6'>
+                <div id='avgSymScores'></div>
+            </div>
+        </div>
+        <div class='clearfix'></div>
+
+        <div class='row'>
+ 
+            <div class='col-4'>
+                <div id='CoupleCountMap'></div>
+            </div>
+            <div class='col-4'>
+                <div id='LinkCountMap'></div>
+            </div>
+            <div class='col-4'>
+                <div id='RatioLinkTotal'></div>
+            </div>
+        </div>
+        <div class='clearfix'></div>
+
+
+        <script>
+            var data_avgSymScores = [{
+                            z: [
+                                <?php
+                                foreach(array_keys($refPredicates) as $ref){
+                                    echo "[";
+                                        foreach(array_keys($focusPredicates) as $foc){
+                                        if(isset($focusPredicates[$foc][$ref])) echo round($focusPredicates[$foc][$ref]/$refPredicates[$ref][$foc], 4).",";
+                                        else echo "null,";
+                                    }
+                                    echo "],";
+                                }
+                                ?>
+                                ],
+                            x: <?php echo json_encode(array_keys($focusPredicates)); ?>,
+                            y: <?php echo json_encode(array_keys($refPredicates)); ?>,
+                            type: 'heatmap',
+                            hoverongaps: false, 
+                            xgap :3,
+                            ygap :3, 
+                            zauto: false, 
+                            zmin:0, 
+                            zmax:1, 
+                            colorscale: [[0, '#ff4757'], [<?php echo $tau_o; ?>, '#ffffff'], [<?php echo ($tau_o+0.01*$tau_o); ?>, '#7bed9f'], [1, '#000000']]
+                        }];
+            var Lay_avgSymScores = {
+                        title:'Average Similarity Scores (<?php echo $objectSymMethod; ?>)',
+                        margin: {
+                            l:150
+                        }
+                };
+            Plotly.newPlot('avgSymScores', data_avgSymScores, Lay_avgSymScores, {responsive: true});
+
+            // I2: number of possible combination per predicate couple
+            var data_CoupleCountMap = [{
+                            z: [
+                                <?php
+                                foreach(array_keys($refPredicates) as $ref){
+                                    echo "[";
+                                        foreach(array_keys($focusPredicates) as $foc){
+                                        if(isset($perdCount[0][$foc]) && isset($perdCount[1][$ref])) echo $perdCount[0][$foc] * $perdCount[1][$ref].",";
+                                        else echo "null,";
+                                    }
+                                    echo "],";
+                                }
+                                ?>
+                            ],
+                            x: <?php echo json_encode(array_keys($focusPredicates)); ?>,
+                            y: <?php echo json_encode(array_keys($refPredicates)); ?>,
+                            type: 'heatmap',
+                            hoverongaps: false,
+                            xgap :3,
+                            ygap :3
+                        }];
+            var Lay_CoupleCountMap = {
+                        title:'I2 (Possible Combinations)',
+                        margin:{
+                            l:150
+                        }
+                };
+        
+            Plotly.newPlot('CoupleCountMap', data_CoupleCountMap, Lay_CoupleCountMap, {responsive: true});
+
+            // I3: number of sublinks per predicate couple
+            var data_LinkCountMap = [{
+                            z: [
+                                <?php
+                                foreach(array_keys($refPredicates) as $ref){
+                                    echo "[";
+                                        foreach(array_keys($focusPredicates) as $foc){
+                                        if(isset($focusPredicates[$foc][$ref])) echo $refPredicates[$ref][$foc].",";
+                                        else echo "null,";
+                                    }
+                                    echo "],";
+                                }
+                                ?>
+                            ],
+                            x: <?php echo json_encode(array_keys($focusPredicates)); ?>,
+                            y: <?php echo json_encode(array_keys($refPredicates)); ?>,
+                            type: 'heatmap',
+                            hoverongaps: false,
+                            xgap :3,
+                            ygap :3
+                        }];
+            var Lay_LinkCountMap = {
+                        title:'I3 (Existing links)',
+                        margin:{
+                            l:150
+                        }
+                };
+        
+            Plotly.newPlot('LinkCountMap', data_LinkCountMap, Lay_LinkCountMap, {responsive: true});
+
+            // I5: ratio (sublinks / possible combinations)
+            var data_RatioLinkTotal = [{
+                            z: [
+                                <?php
+                                foreach(array_keys($refPredicates) as $ref){
+                                    echo "[";
+                                        foreach(array_keys($focusPredicates) as $foc){
+                                        if(isset($focusPredicates[$foc][$ref]) && isset($perdCount[0][$foc]) && isset($perdCount[1][$ref]))
+                                            echo ($refPredicates[$ref][$foc] / ($perdCount[0][$foc] * $perdCount[1][$ref])).",";
+                                        else echo "null,";
+                                    }
+                                    echo "],";
+                                }
+                                ?>
+                            ],
+                            x: <?php echo json_encode(array_keys($focusPredicates)); ?>,
+                            y: <?php echo json_encode(array_keys($refPredicates)); ?>,
+                            type: 'heatmap',
+                            hoverongaps: false,
+                            xgap :3,
+                            ygap :3
+                        }];
+            var Lay_RatioLinkTotal = {
+                        title:'I5 (I3/I2)',
+                        margin:{
+                            l:150
+                        }
+                };
+        
+            Plotly.newPlot('RatioLinkTotal', data_RatioLinkTotal, Lay_RatioLinkTotal, {responsive: true});
+        
+        </script>
+
+        <div class='card card-body fixedBot'>
+            <a data-toggle='collapse' href='#collapseDiv' role='button' aria-expanded='false' aria-controls='collapseDiv'>Debug information</a>
+            <div class='collapse' id='collapseDiv'>
+                <?php var_dump(json_encode($data, JSON_PRETTY_PRINT)); ?>
+            </div>
+        </div>
+       <?php  
     }
     else
     {
@@ -99,164 +401,281 @@
         //
         // ********************************************
 
-        $totalTriples0 = 0;
-        $totalTriples1 = 0;
-        $totalLinkedNodes0 = 0;
-        $totalLinkedNodes1 = 0;
-        $zeroResources0 = 0;
-        $zeroResources1 = 0;
-        $zeroResourcesTriples0 = 0;
-        $zeroResourcesTriples1 = 0;
-        $maxNodes0 = 0;
-        $maxNodes1 = 0;
         $LinkedPred = array();
-        $hashes = array();
-        $counts = array();
+        $counts     = array();  // indices: tripleCount[0-1][$key], tripleLinked[0-1][$key], linkCount[$key], [$key][0-1][predicate])
+        $folder     = $_REQUEST['folder'];
+
         // optional
-        $threshold = 0;
+        $tau_o = 0;
         $simm = 0;
+
         // Weights for semantic similarity: symmetric, reflexive, transitive, functional (assign weights that sum up to 1)
-        $Weights = array(0.1,0.1,0.1,0.7);
+        $Weights = array('w_type' => 0.0, 'w_val' => 1.0, 'w_stat' => 0.5, 'w_sem' => 0.5);
 
-        // For semantics of each predicate (sym, reflex, trans, funct)
-        $predicateSemantics = json_decode(file_get_contents("prerequisits/semantics.json"), true);
+        // Later:   For semantics of each predicate (sym, reflex, trans, funct)
+        //          $predicateSemantics = json_decode(file_get_contents("prerequisits/semantics.json"), true);
 
-        $fileCount = floor(count(glob("results/*.json"))/2);
+        $fileCount = floor(count(glob("results/".$folder."/*.json"))/2);
 
         for($key = 0; $key < $fileCount; $key++){
 
             // read files into json objects
-            $s0 = json_decode(file_get_contents("results/0_{$key}.json"));
-            $s1 = json_decode(file_get_contents("results/1_{$key}.json"));
+            $s0 = json_decode(file_get_contents("results/".$folder."/0_{$key}.json"));
+            $s1 = json_decode(file_get_contents("results/".$folder."/1_{$key}.json"));
             
-            $oldTotal = $totalLinkedNodes0;
-            // analyse from -> to links
+            // init the array (required for $counts)
+            $LinkedPred[$key] = array();
+
+            // Triple count in each representative set
+            $counts['tripleCount'][0][$key] = count($s0);
+            $counts['tripleCount'][1][$key] = count($s1);
+            
+            // Init linked triple Count
+            $counts['tripleLinked'][0][$key] = 0;
+            $counts['tripleLinked'][1][$key] = 0;
+
+            // analyse focus -> ref links
             foreach ($s0 as $triple0) {
-                isset($counts[0][$key][$triple0->predicate])?$counts[0][$key][$triple0->predicate]++:1;
+                $p0 = prefixed($triple0->predicate);
+                // Count distinct predicates for Focus set (for I2 later)
+                isset($counts[0][$p0][$key]) ? $counts[0][$p0][$key]++ : ($counts[0][$p0][$key] = 1);
+
+                // Check for links, push links into $LinkedPred, add one triple to the count
                 $boo = false;
                 foreach ($s1 as $triple1) {
-                    $simm = sym_o($triple1->object,$triple0->object);
-                    if($simm > 0){
+                    $simm = valMatch($triple1->object, $triple0->object, $objectSymMethod);
+                    if($simm > $tau_o){
                         $boo = true;
                         $LinkedPred[$key][] = array($triple0, $triple1, $simm);
                     }
                 }
-                if($boo) $totalLinkedNodes0 += 1;
+                if($boo) $counts['tripleLinked'][0][$key]++;
             }
-            $totalTriples0 += count($s0);
-            if($oldTotal == $totalLinkedNodes0){
-                $zeroResources0++;
-                $zeroResourcesTriples0 += count($s0);
-            } 
-
-            $oldTotal = $totalLinkedNodes1;
-            // analyse to -> from links
+            
+            // analyse ref -> focus links
             foreach ($s1 as $triple1) {
-                isset($counts[1][$key][$triple1->predicate])?$counts[1][$key][$triple1->predicate]++:1;
+                $p1 = prefixed($triple1->predicate);
+                // Count distinct predicates for Reference set (for I2 later)
+                isset($counts[1][$p1][$key]) ? $counts[1][$p1][$key]++ : ($counts[1][$p1][$key] = 1);
+                
+                // Check for links, add one triple to the count
+                $boo = false;
                 foreach ($s0 as $triple0) {
-                    $simm = sym_o($triple1->object,$triple0->object);
-                    if($simm > 0){
-                        $totalLinkedNodes1 += 1;
+                    $simm = valMatch($triple0->object, $triple1->object, $objectSymMethod);
+                    if($simm > $tau_o){
+                        $boo = true;
                         break;
                     }
                 }
+                if($boo) $counts['tripleLinked'][1][$key]++;
             }
-            $totalTriples1 += count($s1);
 
-            if($oldTotal == $totalLinkedNodes1){
-                $zeroResources1++;
-                $zeroResourcesTriples1 += count($s1);
-            } 
+            $counts['LinkCount'][$key] = count($LinkedPred[$key]);
         }
 
         // LinkedPred = array(CBD_ID, r = array(x1,y1,z1), r' = array(x2,y2,z2), sim_degree(z1, z2))
-        // 1 - Syntactic: already done
-        // 2 - Sémantique: analyse how many predicates are linked together, and what stats they do share, on the totality of LinkedPred
 
-        // Invert LinkedPred to be indexed by predicate Couples,
-        // each element of $SemanticPred contains an array of ('Pred', '$i with $i a CBDiD, in each a set of arrays with the triples of the links (to help with $SemanticTag)')
-        foreach ($LinkedPred as $cbdID => $sublinks) {
+        $focusPredicates    = array();     // average object similarity per couple of predicates, per couple of sets
+        $refPredicates      = array();       // number of links per couple of predicates, per couple of sets
+        $muFocusPredicates  = array();     // average object similarity per couple of predicates
+        $muRefPredicates    = array();       // number of links per couple of predicates
+
+        // Get the count for each and every couple of predicates
+        foreach($LinkedPred as $cbdID => $sublinks){
             foreach ($sublinks as $sublink) {
-                $SemanticPred[$sublink[0]->predicate][$sublink[1]->predicate][$cbdID][] = array($sublink[0]->object, $sublink[1]->object, $sublink[2]); //the two objects and their similarity
+                $p0 = prefixed($sublink[0]->predicate);
+                $p1 = prefixed($sublink[1]->predicate);
+                $score = $sublink[2];
+                isset($focusPredicates[$p0][$p1][$cbdID])   ? ($focusPredicates[$p0][$p1][$cbdID] += $score)    : ($focusPredicates[$p0][$p1][$cbdID] = $score);
+                isset($refPredicates[$p1][$p0][$cbdID])     ? ($refPredicates[$p1][$p0][$cbdID]++)              : ($refPredicates[$p1][$p0][$cbdID] = 1);
             }
         }
-        /*
-                // we need to grab the semantic properties of all distinct predicates, in order to compare them using cosine similarity
-                // done either by: providing a schema (mostly rdf, rdfs, foaf, the known ones)
-                // analysing the behaviour of each property inside the cbd (this basically means analysing by hand each and every property, based on the whole dataset so that we don't lose semantics, unless if we augment the dataset beforehand)
 
-                // We assume that we have, for each predicate, a vector $Pred[Assoc-PredicateURI] of ones and zeros holding the next properties (symmetric, asymmetric, reflexive, transitive, Functional) issued from analysing the ontologies of the data sources (later for practise, we use existing known ontologies, and we learn for the rest)
-                // Example: rdfs:label (0,1,0,0,0)
-                //          rdfs:subClass (0,1,1,1,0)
-
-                // Calculate $semanticTag from all triples annotated with that specific property, to know its semantic content
-                // Analyse for 5 properties: (symmetric, asymmetric, reflexive, transitive, Functional)
-                    // Individual analysis, since we will be comparing two different properties from different data source
-
-                    
-                        Hypothesis (for later): 
-                        - Functional: owl:maxCardinality = 1; from the same subject
-                        - Transitive: find at least three triples where s p o, o p n, s p n
-                        - Reflexive: find at least one triple with s p s
-                        - symmetric: find at least two triples with s p o, o p s
-                        - asymmetric: find no triples with s p o, o p s
-            
-                        foreach (array_keys($sublink) as $cbdID => $triplesArray) {
-                            foreach ($triplesArray as $triples) {
-                                $triples[0]->object;
-                                $triples[1]->object;
-                            }
-                        }
-                    
-
-                    // for now, if the property doesn't exist in the semantic tag, just ask the sparql endpoint about it
-                    // + We can have a ready-to-use json
-                    // - we need to query the superproperties as well
-
-                    // Afterwards and using those properties, we can establish the semantics of the sublinks
-        */
-
-        foreach ($SemanticPred as $couple => $sublink) {
-            if(!isset($hashes[$couple])){
-                // Mention the predicate couple
-                $hashes[$couple]['preds'] = array($sublink['preds'][0], $sublink['preds'][1]);
-                
-                // Calculate the indicators
-                // I1: 
-                // I2:
-                // I3:
-                // I4:
-
-                // associate the semantic vector to each predicate
-                // $v1 = $predicateSemantics[$sublink['preds'][0]];
-                // $v2 = $predicateSemantics[$sublink['preds'][1]];
-                
-                // initialize cbdID keys for each predicate Couple, we can track them later using array_keys
-                
-                $hashes[$couple]['semSym'] = cosine($v1, $v2);                                         // Similarity between predicate semantics
-                
-                // Sublink semantic analysis
-                foreach ($sublink as $CBD => $CBDtriples) {
-                    if($CBD == 'preds') continue;
-                    // Statistically see if there is one value per CBD
-                }
-                
+        // Aggregate the measures from all sets in one matrix
+        foreach(array_keys($refPredicates) as $ref){
+            foreach(array_keys($focusPredicates) as $foc){
+                if(isset($focusPredicates[$foc][$ref])) $muFocusPredicates[$foc][$ref]  = round($focusPredicates[$foc][$ref][$cbdID]/$refPredicates[$ref][$foc][$cbdID])/$fileCount, 4);
+                if(isset($refPredicates[$ref][$foc])) $muRefPredicates[$ref][$foc]    = round(array_sum($refPredicates[$ref][$foc])/$fileCount , 4);
             }
         }
-        
-        $NumberOfSemanticLinks = count($SemanticPred);
+
+        foreach($counts[0] as $p0 => $predVector){
+            $counts[0][$p0]['avg'] = round(array_sum($predVector) / $fileCount, 4);
+        }
+        foreach($counts[1] as $p1 => $predVector){
+            $counts[1][$p1]['avg'] = round(array_sum($predVector) / $fileCount, 4);
+        }
 
         $data = array(
-            "entitiesAnalysed" => $fileCount,
-            "totalTriples0" => $totalTriples0,
-            "totalTriples1" => $totalTriples1,
-            "totalLinkedNodes0" => $totalLinkedNodes0,
-            "totalLinkedNodes1" => $totalLinkedNodes1,
-            "hashes" => $hashes,
-            "count" => $counts
+            "entitiesAnalysed"  => $fileCount,
+            "totalTriples0"     => array_sum($counts['tripleCount'][0]),
+            "totalTriples1"     => array_sum($counts['tripleCount'][1]),
+            "totalLinkedNodes0" => array_sum($counts['tripleLinked'][0]),
+            "totalLinkedNodes1" => array_sum($counts['tripleLinked'][1]),
+            "totalLinks"        => array_sum($counts['LinkCount']),
         );
-        echo json_encode($data);
 
+        ?>
+        
+        <div class='row'>
+            <div class='col-6'>
+                <?php var_dump($data);?>
+            </div>
+            <div class='col-6'>
+                <div id='avgSymScores'></div>
+            </div>
+        </div>
+        <div class='clearfix'></div>
+
+        <div class='row'>
+ 
+            <div class='col-4'>
+                <div id='CoupleCountMap'></div>
+            </div>
+            <div class='col-4'>
+                <div id='LinkCountMap'></div>
+            </div>
+            <div class='col-4'>
+                <div id='RatioLinkTotal'></div>
+            </div>
+        </div>
+        <div class='clearfix'></div>
+
+
+        <script>
+            var data_avgSymScores = [{
+                            z: [
+                                <?php
+                                foreach(array_keys($muRefPredicates) as $ref){
+                                    echo "[";
+                                        foreach(array_keys($muFocusPredicates) as $foc){
+                                        if(isset($muFocusPredicates[$foc][$ref])) echo round($muFocusPredicates[$foc][$ref]/$muRefPredicates[$ref][$foc], 4).",";
+                                        else echo "null,";
+                                    }
+                                    echo "],";
+                                }
+                                ?>
+                                ],
+                            x: <?php echo json_encode(array_keys($muFocusPredicates)); ?>,
+                            y: <?php echo json_encode(array_keys($muRefPredicates)); ?>,
+                            type: 'heatmap',
+                            hoverongaps: false, 
+                            xgap :3,
+                            ygap :3, 
+                            zauto: false, 
+                            zmin:0, 
+                            zmax:1, 
+                            colorscale: [[0, '#ff4757'], [<?php echo $tau_o; ?>, '#ffffff'], [<?php echo ($tau_o+0.01*$tau_o); ?>, '#7bed9f'], [1, '#000000']]
+                        }];
+            var Lay_avgSymScores = {
+                        title:'Average Similarity Scores (<?php echo $objectSymMethod; ?>)',
+                        margin: {
+                            l:150
+                        }
+                };
+            Plotly.newPlot('avgSymScores', data_avgSymScores, Lay_avgSymScores, {responsive: true});
+
+            // I2: number of possible combination per predicate couple
+            var data_CoupleCountMap = [{
+                            z: [
+                                <?php
+                                foreach(array_keys($muRefPredicates) as $ref){
+                                    echo "[";
+                                        foreach(array_keys($muFocusPredicates) as $foc){
+                                        if(isset($counts[0][$foc]['avg']) && isset($counts[1][$ref]['avg'])) echo $counts[0][$foc]['avg'] * $counts[1][$ref]['avg'].",";
+                                        else echo "null,";
+                                    }
+                                    echo "],";
+                                }
+                                ?>
+                            ],
+                            x: <?php echo json_encode(array_keys($muFocusPredicates)); ?>,
+                            y: <?php echo json_encode(array_keys($muRefPredicates)); ?>,
+                            type: 'heatmap',
+                            hoverongaps: false,
+                            xgap :3,
+                            ygap :3
+                        }];
+            var Lay_CoupleCountMap = {
+                        title:'I2 (Possible Combinations)',
+                        margin:{
+                            l:150
+                        }
+                };
+        
+            Plotly.newPlot('CoupleCountMap', data_CoupleCountMap, Lay_CoupleCountMap, {responsive: true});
+
+            // I3: number of sublinks per predicate couple
+            var data_LinkCountMap = [{
+                            z: [
+                                <?php
+                                foreach(array_keys($muRefPredicates) as $ref){
+                                    echo "[";
+                                        foreach(array_keys($muFocusPredicates) as $foc){
+                                        if(isset($muFocusPredicates[$foc][$ref])) echo $muRefPredicates[$ref][$foc].",";
+                                        else echo "null,";
+                                    }
+                                    echo "],";
+                                }
+                                ?>
+                            ],
+                            x: <?php echo json_encode(array_keys($muFocusPredicates)); ?>,
+                            y: <?php echo json_encode(array_keys($muRefPredicates)); ?>,
+                            type: 'heatmap',
+                            hoverongaps: false,
+                            xgap :3,
+                            ygap :3
+                        }];
+            var Lay_LinkCountMap = {
+                        title:'I3 (Existing links)',
+                        margin:{
+                            l:150
+                        }
+                };
+        
+            Plotly.newPlot('LinkCountMap', data_LinkCountMap, Lay_LinkCountMap, {responsive: true});
+
+            // I5: ratio (sublinks / possible combinations)
+            var data_RatioLinkTotal = [{
+                            z: [
+                                <?php
+                                foreach(array_keys($muRefPredicates) as $ref){
+                                    echo "[";
+                                        foreach(array_keys($muFocusPredicates) as $foc){
+                                        if(isset($muFocusPredicates[$foc][$ref]) && isset($counts[0][$foc]['avg']) && isset($counts[1][$ref]['avg']))
+                                            echo ($muRefPredicates[$ref][$foc] / ($counts[0][$foc]['avg'] * $counts[1][$ref]['avg'])).",";
+                                        else echo "null,";
+                                    }
+                                    echo "],";
+                                }
+                                ?>
+                            ],
+                            x: <?php echo json_encode(array_keys($muFocusPredicates)); ?>,
+                            y: <?php echo json_encode(array_keys($muRefPredicates)); ?>,
+                            type: 'heatmap',
+                            hoverongaps: false,
+                            xgap :3,
+                            ygap :3
+                        }];
+            var Lay_RatioLinkTotal = {
+                        title:'I5 (I3/I2)',
+                        margin:{
+                            l:150
+                        }
+                };
+        
+            Plotly.newPlot('RatioLinkTotal', data_RatioLinkTotal, Lay_RatioLinkTotal, {responsive: true});
+        
+        </script>
+
+        <div class='card card-body fixedBot'>
+            <a data-toggle='collapse' href='#collapseDiv' role='button' aria-expanded='false' aria-controls='collapseDiv'>Debug information</a>
+            <div class='collapse' id='collapseDiv'>
+                <?php var_dump(json_encode($data, JSON_PRETTY_PRINT)); ?>
+            </div>
+        </div>
+<?php
+    // END -- Complete analysis      
     }
 
 ?>

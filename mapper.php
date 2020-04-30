@@ -1,130 +1,3 @@
-<?php 
-
-    //ini_set('max_execution_time', 0); // to get unlimited php script execution time
-    /*
-        Helper functions
-    */
-
-    function getInstances($class, $source, $parameters, $limit = 500, $sourceSimilarity = null){
-        
-        $query = 
-                "SELECT distinct ?source1  ".(!is_null($sourceSimilarity)?("?source2"):"")."
-                WHERE {
-                    ?source1 a ".$class." .
-                    ".(!is_null($sourceSimilarity)?("
-                    ?source1 <http://www.w3.org/2002/07/owl#sameAs> ?source2 .
-                    FILTER (CONTAINS(STR(?source2),'".$sourceSimilarity."'))
-                    "):"")."
-                }
-                LIMIT ".$limit;
-    
-        $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
-        if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
-        else $searchUrl .= '&format=json';
-
-        return $searchUrl;
-    }
-
-    // Change the CBD according to definition
-        // We limit the number of triples to 300 so that it doesn't explode
-    function getCBD($instance, $source, $parameters, $level = 1, $limit= 300, $symmetric = false, $withBlanks = false){
-        
-        // -- QUERY START
-            // Clean Comments
-        $query = str_replace("%SUBJECT%", urldecode($instance), file_get_contents("queries/cbd.rq"));
-        $query = str_replace("%LIMITED%", $limit, $query);
-        // -- QUERY END
-
-        // Create the URL to query
-        $searchUrl = $source ."?". $parameters['query'].'='. urlencode($query) .'&format=json';
-
-        return $searchUrl;
-    }
-
-    function getSymCBD($instance, $source, $parameters, $level = 1){
-        $query = 
-        "SELECT ?predicate ?object
-        WHERE {{
-            <".urldecode($instance)."> ?predicate ?object .} UNION { ?object ?predicate <".urldecode($instance)."> .}";
-        if($level > 1) {
-            for ($i=1; $i < $level; $i++) {
-                // loop all the levels
-                $query .= " UNION {<".urldecode($instance)."> ?p0 ?o0 . ";
-
-                for ($j=0; $j < $i; $j++) { 
-                    $query .= "?o{$j} ?p".($j+1)." ?o".($j+1).".";
-                }
-                $query .= "BIND(?p{$i} as ?predicate).";
-                $query .= "BIND(?o{$i} as ?object).";
-                $query .= "} UNION {";
-
-                for ($j=$i; $j > 0; $j--) { 
-                    $query .= "?o".($j)." ?p".($j)." ?o".($j-1)." .";
-                }
-
-                $query .= "?o0 ?p0 <".urldecode($instance).">. ";
-                $query .= "BIND(?p{$i} as ?predicate).";
-                $query .= "BIND(?o{$i} as ?object).";
-                $query .= "}";
-            }
-        }
-
-        $query .= "}";
-            $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
-            if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
-            
-        return $searchUrl;
-    }
-
-    function getCustomCBD($instance, $source, $parameters, $pattern){
-        $query = 
-        "SELECT ?predicate ?object
-        WHERE {".$pattern."}";
-        
-            $searchUrl = $source ."?". $parameters['query'].'='.urlencode($query);
-            if(isset($parameters['format'])) $searchUrl .= '&format='.$parameters['format'];
-            
-        return $searchUrl;
-    }
-
-    function request($url){
-        
-        // is curl installed?
-        if (!function_exists('curl_init')){ 
-            die('CURL is not installed!');
-        }
-        
-        // get curl handle
-        $ch= curl_init();
-        
-        // set request url
-        curl_setopt($ch, 
-            CURLOPT_URL, 
-            $url);
-        
-        // return response, don't print/echo
-        curl_setopt($ch, 
-            CURLOPT_RETURNTRANSFER, 
-            true);
-        
-        /*
-        Here you find more options for curl:
-        http://www.php.net/curl_setopt
-        */		
-        
-        $response = curl_exec($ch);
-        
-        curl_close($ch);
-        
-        return $response;
-    }
-
-
-    $cbdAnswer = array();
-    $instanceURL = getInstances("<".$_REQUEST['class'].">", $_REQUEST['main'], array('query'=>'query','format'=>'json'), $_REQUEST["limit"], $_REQUEST["similarity"]);
-    $instanceArray = json_decode(request($instanceURL), true); 
-    $instanceCount = count($instanceArray["results"]["bindings"]);
-?>
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
       "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -154,16 +27,6 @@
             width:20px;
             height:20px;
             margin-right: 10px;
-        }
-        
-        #plotter {
-            height:500px;
-            border: 1px solid;
-            overflow: hidden;
-        }
-
-        .plot-container.plotly {
-            position:absolute;
         }
 
         .progress {
@@ -195,189 +58,48 @@
   <div class="row">
     <div class="sidebar col-sm-3 hidden-xs">
         <h1>Archer</h1>
-        <p>Show full results</p>
-        <p>Select a link</p>
-        <ul>
-            <?php
-                if(isset($_REQUEST['class'])){
-                    foreach ($instanceArray["results"]["bindings"] as $key => $value) {
-                        echo "<li><a href='#' data-value='$key'>" . $value[''] . "</a></li>";
-                    }
-                } else {
-                    
-                }
-                    
-            ?>
-            <li>Res1</li>
-            <li>Res2</li>
-            <li>Res3</li>
-            <li>Res4</li>
-        </ul>
-        <ul id="list"></ul>
-    </div>
-    <div class="main col-sm-9 col-sm-offset-3">
-            <form action='mapper.php' method="POST">
-                <div class="form-group row">
-                    <label for="class" class="col-sm-1 col-form-label">Class</label>
-                    <div class="col-sm-5">
-                    <input type="text" class="form-control" id="class" name="class" placeholder="Class" value='<?php echo $_REQUEST["class"]; ?>'/>
-                    </div>
-                    <label for="limit" class="col-sm-1 col-form-label">Limit</label>
-                    <div class="col-sm-5">
-                    <input type="text" class="form-control" id="limit" name="limit" placeholder="Class" value='<?php echo $_REQUEST["limit"]; ?>'/>
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="main" class="col-sm-1 col-form-label">Main source</label>
-                    <div class="col-sm-5">
-                    <input type="text" class="form-control" id="main" name="main" placeholder="Main source" value='<?php echo $_REQUEST["main"]; ?>'/>
-                    </div>
-                    <label for="second" class="col-sm-1 col-form-label">Secondary source</label>
-                    <div class="col-sm-5">
-                    <input type="text" class="form-control" id="second" name="second" placeholder="Class" value='<?php echo $_REQUEST["second"]; ?>'/>
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="similarity" class="col-sm-1 col-form-label">similarity string</label>
-                    <div class="col-sm-3">
-                        <input type="text" class="form-control" id="similarity" name="similarity" placeholder="similarity string" value='<?php echo $_REQUEST["similarity"]; ?>'/>
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <div class="col-sm-2">
-                    <button type="submit" class="btn btn-primary">Query</button>
-                    </div>
-                    <div class="col-sm-8">
-                    <div class="progress">
-                        <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                    </div>
-                    <div class="col-sm-2">
-                        <a href="#" id='analyseAll' class="float-right btn btn-primary">Analyze all</a>
-                    </div>
-                </div>
-            </form>
-        
-        <p>
-            <a class="btn btn-primary dropdown-toggle" data-toggle="collapse" href="#allResults" role="button" aria-expanded="true" aria-controls="allResults">
-                Collapse Results
-            </a>
-        </p>
-
-
-        <?php
-            $files = glob('results/*.json'); // get all file names
-            foreach($files as $file){ // iterate files
-                if(is_file($file))
-                    unlink($file); // delete file
-            }
-
-            // Results start
-            echo "<div class='collapse show' id='allResults'>";
-
-            echo "<table class='table table-bordered' id='results'>";
-            $counter = array(0 => 0, 1 => 0);
-            ob_start();
-            ob_implicit_flush(true);
-            ob_end_flush();
-
-            echo "<tr>";
-            echo "<th scope='col'>N°</th>";
-            foreach ($instanceArray["head"]["vars"] as $key => $value) {
-                echo "<th scope='col'>".$value."</th>";
-            }
-            echo "<th scope='col'>Analyze</th></tr>";
-            $cbdURL = "";
-            $nom = 0;
-            foreach ($instanceArray["results"]["bindings"] as $key => $value) {
-                $nom++;
-                $percent = round($nom*100/$instanceCount);
-                echo "<script class='deletelater'>document.getElementById('progress-bar').setAttribute('style', 'width:{$percent}% !important;')</script>";
-                $i = 0;
-                echo "<tr><th scope='row'>".($key+1)."</th>";
-                foreach ($value as $key2 => $value2) {
-                    
-                    echo "<td><a href='".$value2["value"]."' target='_blank'><img class='icn' src='assets/img/lnk.png'/></a><a data-toggle='collapse'
-                    href='#collapseExample".$key.$key2."' role='button' aria-expanded='false' aria-controls='collapseExample".$key.$key2."'>".urldecode($value2["value"])."<span class='triple{$i} badge badge-dark float-right'>";
-                    $cbdURL = "";
-                    $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query'));
-                    /*
-                    // Further dev
-                    switch ($_REQUEST['exampleRadios']) {
-                        case 'option1':
-                            $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query'));
-                            break;
-                        case 'option2':
-                            $cbdURL = getCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'), $_REQUEST['numCBD'], true);
-                            break;
-                        case 'option3':
-                            $cbdURL = getCustomCBD($value2["value"], ($i==0)?$_REQUEST['main']:$_REQUEST['second'], array('query'=>'query','format'=>'json'), $_REQUEST['customCBD']);
-                            break;
-                    }
-                    */
-                    $cbd = json_decode(request($cbdURL), true); 
-                    if(is_array($cbd) && count($cbd["results"]["bindings"]) > 0) {
-                        $counter[$i] += count($cbd["results"]["bindings"]);
-                        echo count($cbd["results"]["bindings"])."</span></a><div class='collapse' id='collapseExample".$key.$key2."'><div class='card card-body'>";
-                        echo "<table class='table'><tr><th>Predicate</th><th>Object</th></tr>";
-                        foreach ($cbd["results"]["bindings"] as $key3 => $value3) {
-                            echo "<tr>";
-                                echo "<td>".$value3["predicate"]["value"]."</td>";
-                                echo "<td>".$value3["object"]["value"]."</td>";
-                            echo "</tr>";
-                            $cbdAnswer[$key][$i][] = array("subject" => $value2["value"], "predicate" =>$value3["predicate"]["value"], "object" => $value3["object"]["value"]);
-                        }
-                        echo "</table>";
-                        $fp = fopen("results/{$i}_{$key}.json", 'w');
-                        fwrite($fp, json_encode($cbdAnswer[$key][$i]));
-                        fclose($fp);
-
-                    } else {
-                        echo "0</span></a><div class='collapse' id='collapseExample".$key.$key2."'><div class='card card-body'>";
-                        $fp = fopen("results/{$i}_{$key}.json", 'w');
-                        fwrite($fp, json_encode(array()));
-                        fclose($fp);
-
-                    }
-                    echo "</div></div></td>";
-
-                    $i += 1;
-                }
-
-                echo "<td><a class='analysis' href='#' data-key='{$key}' data-toggle='modal' data-target='#exampleModalCenter'>Analyze</a></td></tr>";
-            }
-
-            echo "<tr>
-                    <td>Total</td>
-                    <td><span id='count0' class='badge badge-dark float-right'>".$counter[0]."</span></td>
-                    <td><span id='count1' class='badge badge-dark float-right'>".$counter[1]."</span></td>
-                    <td><span id='count2'></span></td>
-                </tr>
-                </table>";
-
-
-            echo "</div>";
-            // Results end
-        ?>
-        
-        <div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="exampleModalCenterTitle">Analyzing </h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
+        <p><a href='query.php' >&lt; Back to queries</a></p>
+        <p><a class='linkAll' href='#' >Show full results</a></p>
+        <div class="form-group row">
+            <label for="objSymMethod" class="col-sm-2 col-form-label">Object Similarity</label>
+            <div class="col-sm-10">
+                <select id='objSymMethod' class="form-control form-control-sm">
+                    <option value='default'>String equality</option>
+                    <option value='jaccard'>Jaccard</option>
+                    <option value='jaro-winkler'>Jaro-Winkler</option>
+                </select>
             </div>
         </div>
+        <br>
+
+            <?php
+                if(isset($_REQUEST['folder'])){
+                    $folder = "results/".$_REQUEST['folder'];
+                    $fileCount = floor(count(glob($folder."/*.json"))/2);
+                    $indices = json_decode(file_get_contents($folder.".json"));
+
+                    echo "<p>Total sets: <span class='badge badge-danger float-right'>".$fileCount."</span></p>";
+                    echo "<ul>";
+                    for($key = 0; $key < $fileCount; $key++){
+
+                        // read files into json objects
+                        $s0 = json_decode(file_get_contents($folder."/0_{$key}.json"));
+                        $s1 = json_decode(file_get_contents($folder."/1_{$key}.json"));
+
+                        $c0 = count($s0);
+                        $c1 = count($s1);
+                            
+                        echo "<li><a class='linkResult' href='#' data-key='$key'>" . urldecode(basename($indices[$key][1])) . "</a><span class='triple1_{$key} badge badge-primary float-right'>{$c1}</span><span class='triple0_{$key} badge badge-warning float-right'>{$c0}</span></li>";
+                    }
+                    echo "</ul>";
+                } else {
+                    echo "<ul><li>Please set a valid folder in the parameters.</li></ul>";
+                }    
+            ?>
+
+    </div>
+    <div class="main col-sm-9 col-sm-offset-3">
+
   </div>
 </div>
 
@@ -388,35 +110,30 @@
 
     <script>
 
-        $('.deletelater').remove();
-
-        $('[name=exampleRadios]').on('change', function(){
-            if(this.value == 'option3'){
-                $('#custom').prop('disabled', '');
-            } else {
-                $('#custom').prop('disabled', 'disabled');
-            }
-        });
-
-        $('.analysis').on('click', function(){
+        $('.linkResult').on('click', function(){
             var that = $(this);
             var key = $(this).data("key");
-            var firstTriple = $(this).parent().siblings('td').children('a:first');
-            var secondTriple = $(this).parent().siblings('td').children('a:last');
 
             $.ajax({
                 type: "get",
-                url: "analyze.php?key=" + key,
-                data: "data",
-                dataType: "json",
+                url: "analyze.php?method="+$('#objSymMethod').val()+"&folder=<?php echo isset($_REQUEST['folder'])?$_REQUEST['folder']:"";?>&key=" + key,
                 success: function (response) {
-                    firstTriple.html(firstTriple.html() + "<span class='badge badge-danger float-right'>"+ response.nodesFrom + "</span>");
-                    secondTriple.html(secondTriple.html() + "<span class='badge badge-danger float-right'>"+ response.nodesTo + "</span>");
-                    that.html(that.html() + "<span class='badge badge-success float-right'>"+ response.links + "</span>")
+                    $('.main').html(response);
                 }
             });
+        });
 
+        $('.linkAll').on('click', function(){
+            var that = $(this);
+            var key = $(this).data("key");
 
+            $.ajax({
+                type: "get",
+                url: "analyze.php?method="+$('#objSymMethod').val()+"&folder=<?php echo isset($_REQUEST['folder'])?$_REQUEST['folder']:"";?>",
+                success: function (response) {
+                    $('.main').html(response);
+                }
+            });
         });
 
         $('#analyseAll').on('click', function(){
