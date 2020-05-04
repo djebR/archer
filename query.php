@@ -128,6 +128,9 @@
         $instanceURL = getInstances("<".$_REQUEST['class'].">", $_REQUEST['main'], array('query'=>'query','format'=>'json'), $_REQUEST["limit"], $_REQUEST["similarity"]);
         $folder = "results/".md5($instanceURL);
 
+        // Todo: check for instance count before creating the folder to avoid duplicate result from possible non completely satisfied queries
+        // Example: query for 1000 entries while only 100 exists, so one folder should be created for the 100 entities
+
         if(!file_exists($folder)){
             mkdir($folder);
             $instanceArray = json_decode(request($instanceURL), true); 
@@ -265,7 +268,10 @@
             </div>
             <div class="form-group row">
                 <div class="col-sm-2">
-                <button type="submit" class="btn btn-primary">Query</button>
+                <button type="submit" class="btn btn-primary">Query
+                    <span class="spnn spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display:none;"></span>
+                    <span class="spnn sr-only" style="display:none;">Loading...</span>
+                </button>
                 </div>
                 <div class="col-sm-8">
                 <div class="clearfix"></div>
@@ -275,7 +281,18 @@
                 </div>
             </div>
         </form>
-  </div>
+
+        <div class="row">
+            <div class="col-12">
+            <h4>Previous queries</h4>
+            <ul>
+                <li>Q</li>
+                <li>Q</li>
+                <li>Q</li>
+            </ul>
+            </div>
+        </div>
+    </div>
 </div>
 
 
@@ -289,7 +306,7 @@
             event.preventDefault();
 
             var that = $(this);
-
+            $('.spnn').show();
             $.ajax({
                 type: "post",
                 url: "query.php",
@@ -298,6 +315,7 @@
                 success: function (response) {
                     $('#analyseAll').attr('href', 'mapper.php?folder='+response.folder);
                     $('#analyseAll').show();
+                    $('.spnn').hide();
                 }
             });
 

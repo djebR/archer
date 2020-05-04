@@ -59,7 +59,10 @@
     <div class="sidebar col-sm-3 hidden-xs">
         <h1>Archer</h1>
         <p><a href='query.php' >&lt; Back to queries</a></p>
-        <p><a class='linkAll' href='#' >Show full results</a></p>
+        <p><button class='linkAll btn btn-primary'>Show full results
+            <span class="spnn spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display:none;"></span>
+            <span class="spnn sr-only" style="display:none;">Loading...</span>
+        </button></p>
         <div class="form-group row">
             <label for="objSymMethod" class="col-sm-2 col-form-label">Object Similarity</label>
             <div class="col-sm-10">
@@ -70,10 +73,26 @@
                 </select>
             </div>
         </div>
+        <div class="row p-3">
+            <div class="col-6">
+                <div class="form-group row">
+                    <label for="localTau">Local Tau:</label>
+                    <input class="form-control" type="text" id="localTau" value="0.5"/>
+                </div>  
+            </div>
+            <div class="col-6">
+                <div class="form-group row">
+                    <label for="avgTau">Avg. Tau:</label>
+                    <input class="form-control" type="text" id="avgTau" value="0.5"/>
+                </div>
+            </div>
+        </div>
+        
+
         <br>
 
             <?php
-                if(isset($_REQUEST['folder'])){
+                if(isset($_REQUEST['folder']) && file_exists("results/".$_REQUEST['folder'].".json")){
                     $folder = "results/".$_REQUEST['folder'];
                     $fileCount = floor(count(glob($folder."/*.json"))/2);
                     $indices = json_decode(file_get_contents($folder.".json"));
@@ -89,7 +108,7 @@
                         $c0 = count($s0);
                         $c1 = count($s1);
                             
-                        echo "<li><a class='linkResult' href='#' data-key='$key'>" . urldecode(basename($indices[$key][1])) . "</a><span class='triple1_{$key} badge badge-primary float-right'>{$c1}</span><span class='triple0_{$key} badge badge-warning float-right'>{$c0}</span></li>";
+                        echo "<li><a class='linkResult' href='#{$key}' data-key='{$key}'>" . urldecode(basename($indices[$key][1])) . "</a><span class='triple1_{$key} badge badge-primary float-right'>{$c1}</span><span class='triple0_{$key} badge badge-warning float-right'>{$c0}</span></li>";
                     }
                     echo "</ul>";
                 } else {
@@ -110,13 +129,16 @@
 
     <script>
 
+        var currentAnchor = -1;
+
         $('.linkResult').on('click', function(){
             var that = $(this);
             var key = $(this).data("key");
+            currentAnchor = key;
 
             $.ajax({
                 type: "get",
-                url: "analyze.php?method="+$('#objSymMethod').val()+"&folder=<?php echo isset($_REQUEST['folder'])?$_REQUEST['folder']:"";?>&key=" + key,
+                url: "analyze.php?tauO="+$('#localTau').val()+"&tauAvg="+$('#avgTau').val()+"&method="+$('#objSymMethod').val()+"&folder=<?php echo isset($_REQUEST['folder'])?$_REQUEST['folder']:"";?>&key=" + key,
                 success: function (response) {
                     $('.main').html(response);
                 }
@@ -126,124 +148,18 @@
         $('.linkAll').on('click', function(){
             var that = $(this);
             var key = $(this).data("key");
+            that.attr("disabled", true);
+            $('.spnn').show();
 
             $.ajax({
                 type: "get",
-                url: "analyze.php?method="+$('#objSymMethod').val()+"&folder=<?php echo isset($_REQUEST['folder'])?$_REQUEST['folder']:"";?>",
+                url: "analyze.php?tauO="+$('#localTau').val()+"&tauAvg="+$('#avgTau').val()+"&method="+$('#objSymMethod').val()+"&folder=<?php echo isset($_REQUEST['folder'])?$_REQUEST['folder']:"";?>",
                 success: function (response) {
                     $('.main').html(response);
+                    $('.spnn').hide();
+                    that.removeAttr("disabled");
                 }
             });
-        });
-
-        $('#analyseAll').on('click', function(){
-
-            var keys = $("a[class=analysis]");
-            var count0 = 0;
-            var count1 = 0;
-            var countLinks = 0;
-
-            var y0 = [];
-            var y1 = [];
-            var y2 = [];
-
-            $.each(keys, function (indexInArray, valueOfElement) { 
-                var that = $(this);
-                var key = $(this).data("key");
-                var firstTriple = $(this).parent().siblings('td').children('a[role]:first');
-                var secondTriple = $(this).parent().siblings('td').children('a[role]:last');
-
-                $.ajax({
-                    async: false,
-                    type: "get",
-                    url: "analyze.php?key=" + key,
-                    data: "data",
-                    dataType: "json",
-                    success: function (response) {
-                        firstTriple.html(firstTriple.html() + "<span class='badge badge-danger float-right'>"+ response.nodesFrom + "</span>");
-                        secondTriple.html(secondTriple.html() + "<span class='badge badge-danger float-right'>"+ response.nodesTo + "</span>");
-                        that.html(that.html() + "<span class='badge badge-success float-right'>"+ response.links + "</span>");
-                        count0 += response.nodesFrom;
-                        count1 += response.nodesTo;
-                        countLinks += response.links;
-
-                        triple0 = Number(that.parent().siblings('td').find('.triple0').text());
-                        triple1 = Number(that.parent().siblings('td').find('.triple1').text());
-                        y0[key] = (triple0 == 0)?0:(response.nodesFrom/triple0);
-                        y1[key] = (triple1 == 0)?0:(response.nodesTo/triple1);
-                        y2[key] = (triple0 == 0 || triple1 == 0)?0:Math.max(response.nodesFrom,response.nodesTo)/Math.min(triple0, triple1);
-                        /* will be update to use with d3
-                        
-                        response.possibleLinkedPred.forEach(element => {
-                            if(!hash.hasOwnProperty(element)){
-                                possibleLinks.push(element);
-                                hash[element] = 1;
-                            } else {
-                                hash[element]++;
-                            }
-                        });*/
-                    }
-                });
-            });
-
-            $('#count0').parent().html($('#count0').parent().html() + "<span class='badge badge-danger float-right'>"+ count0 + "</span>");
-            $('#count1').parent().html($('#count1').parent().html() + "<span class='badge badge-danger float-right'>"+ count1 + "</span>");
-            $('#count2').parent().html($('#count2').parent().html() + "<span class='badge badge-success float-right'>"+ countLinks + "</span>");
-
-            $.ajax({
-                async: false,
-                type: "get",
-                url: "analyze.php",
-                data: "data",
-                dataType: "json",
-                success: function (response) {
-    
-                    var content = "<p><a class='btn btn-primary dropdown-toggle' data-toggle='collapse' href='#analyseResults' role='button' aria-expanded='true' aria-controls='analyseResults'>Collapse Analysis</a></p><div id='analyseResults' class='collapse show'>";
-                    content += "<div class='row'><div class='col-sm-6'>" +
-                        "Number of Triples issued from MusicBrainz : " + response.totalTriples0 + "<br/>"
-                        + "Number of Triples issued from DBpedia : " + response.totalTriples1 + "<br/>"
-                        + "Number of (MB) Resources linked with (DBP) : " + response.totalLinkedNodes0 + "<br/>"
-                        + "Number of (DBP) Resources linked with (MB) : " + response.totalLinkedNodes1 + "<br/>"
-                        + "Number of (MB) Resources with zero links : " + response.zeroResources0 + "<br/>"
-                        + "Number of (DBP) Resources with zero links : " + response.zeroResources1 + "<br/>"
-                        + "Number of Triples of (MB) Resources with zero links : " + response.zeroResourcesTriples0 + "<br/>"
-                        + "Number of Triples of (DBP) Resources with zero links : " + response.zeroResourcesTriples1 + "</div>"
-                        + "<div class='col-sm-6' id='plotter' style='padding: 0px;'></div></div><br/><table class='table stats'><tr>";
-
-                    content += '<tr><th>Key</th><th>Frequency</th><th>Existance of a Link per SameAs</th></tr>'
-
-                    for (element in response.hashes){
-                        content += '<tr>'                        
-                        content += '<td>' + element + '</td><td>' + response.hashes[element] + '</td></tr>'
-                    };
-                    content += "</table></div>";
-
-                    $('.main').append(content);
-
-                    var trace1 = {
-                    y: y0,
-                    type: 'box',
-                    name: 'MusicBrainz'
-                    };
-
-                    var trace2 = {
-                    y: y1,
-                    type: 'box',
-                    name: 'DBpedia'
-                    };
-
-                    var trace3 = {
-                    y: y2,
-                    type: 'box',
-                    name: 'Total'
-                    };
-
-                    var data = [trace1, trace2, trace3];
-
-                    Plotly.newPlot('plotter', data);
-                }
-            });
-
         });
 
     </script>
