@@ -20,7 +20,22 @@
         // w_val  [sym_o]: to favor value matching (string matching)
         // w_local [sym_p]: to favor link existance ratio between two predicates
         // w_sem [sym_p]: to favor semantic similarity score between two predicates
-    $Weights = array('w_type' => 0.2, 'w_val' => 0.8, 'w_local' => 0.5, 'w_sem' => 0.5);
+    $Weights = array('w_type' => 0.0, 'w_val' => 1.0, 'w_local' => 0.5, 'w_sem' => 0.5);
+    $semanticWeights = array(
+                        'sameURI' => 0.2,
+                        'MU1_G' => 0.0,
+                        'MU1_E' => 0.0,
+                        'MU1_L' => 0.5,
+                        'MU2_E' => 0.0,
+                        'MU2_L' => 0.0,
+                        'MU3_E' => 0.0,
+                        'MU3_L' => 0.0,
+                        'MU4_E' => 0.0,
+                        'MU4_L' => 0.2,
+                        'MU4_G' => 0.0,
+                        'MU5_E' => 0.0,
+                        'MU5_L' => 0.1,
+                        'MU5_G' => 0.0);
 
     // Thresholds
     $tau_o      = (isset($_REQUEST['tauO']))?$_REQUEST['tauO']:0.5;
@@ -108,9 +123,21 @@
         return $prefixDB[$rest].":".$base;
     }
 
-    // dotProduct: dot product of two vectors
+    /**
+     * dotProduct: dot product of two vectors (normal or associative)
+     * 
+     * @param array $v1 first vector
+     * @param array $v2 second vector
+     * 
+     * @return double dot product of the two vectors
+     */ 
     function dotProduct($v1, $v2){
-        return array_sum(array_map(function($a, $b) {return $a * $b;}, $v1, $v2));
+        $sum = 0;
+
+        foreach($v1 as $index => $value){
+            $sum += $value * $v2[$index];
+        }
+        return $sum;
     }
 
     // magnitude: sqrt(sum(vector with each element to the power of 2))
@@ -138,7 +165,7 @@
                 $ss2 = str_split($s2);
                 $arr_intersection   = array_intersect($ss1, $ss2);
                 $arr_union          = array_merge($ss1, $ss2);
-                $sim                = count( $arr_intersection ) / count( $arr_union );
+                $sim                = 2 * count( $arr_intersection ) / count( $arr_union );
                 break;
             case 'hamming':
                 $l1 = strlen($s1);
@@ -173,15 +200,24 @@
         return $result;
     }
 
-    // Predicate similarity: for statistical similarity between two predicates, taking into account the clusters
-    function sym_p($p1, $p2, $localCount, $semanticSym, $cardRf){
-        return round(($Weights['w_local'] * $localCount + $Weights['w_sem'] * $semanticSym)/$cardRf, 4);
+    /**
+        * Predicate similarity: for statistical similarity between two predicates, taking into account the clusters
+        *
+        * @param string $p1
+        * @param string $p2
+        *
+        * @return double $semanticSimilarity
+        */
+    function sym_p($p1, $p2, $localCount, $sym_p, $cardRf){
+        //return round($Weights['w_local'] * $localCount + $Weights['w_sem'] * $sym_p[$p1][$p2], 4);
+        return $sym_p[$p1][$p2];
     }
 
-    // ------------------- Coding: One couple of rep-sets --------------------------
 
     if(isset($_REQUEST['key']) && file_exists("results/".$_REQUEST['folder']."/0_".$_REQUEST['key'].".json") && file_exists("results/".$_REQUEST['folder']."/1_".$_REQUEST['key'].".json")){
         
+        // ------------------- Coding: One couple of rep-sets --------------------------
+
         //setProgress(1, "Getting content ...");
     
         // Analyse one line 
@@ -410,7 +446,7 @@
                             ygap :3
                         }];
             var Lay_RatioLinkTotal = {
-                        title:'I5 (I3/I2)',
+                        title:'I4 (I3/I2)',
                         margin:{
                             l:150
                         }
@@ -508,16 +544,19 @@
                 if($boo) $counts['tripleLinked'][1][$key]++;
             }
 
-            $counts['linkedAvg'][0][$key] = $counts['tripleLinked'][0][$key]/$counts['tripleCount'][0][$key];
-            $counts['linkedAvg'][1][$key] = $counts['tripleLinked'][1][$key]/$counts['tripleCount'][1][$key];
+            $counts['linkedAvg'][0][$key] = ($counts['tripleCount'][0][$key])?($counts['tripleLinked'][0][$key]/$counts['tripleCount'][0][$key]):0;
+            $counts['linkedAvg'][1][$key] = ($counts['tripleCount'][1][$key])?($counts['tripleLinked'][1][$key]/$counts['tripleCount'][1][$key]):0;
             $counts['LinkCount'][$key] = count($LinkedPred[$key]);
         }
+
+
 
         setProgress(2, "Analysing sublinks ...");
 
         // LinkedPred = array(CBD_ID, r = array(x1,y1,z1), r' = array(x2,y2,z2), sim_degree(z1, z2))
 
         $predFeatureTensor  = array();
+        $sym_p              = array();
         $semanticTensor     = array();
         $focusPredicates    = array();          // average object similarity per couple of predicates, per couple of sets
         $refPredicates      = array();          // number of links per couple of predicates, per couple of sets
@@ -574,26 +613,29 @@
 
                     // Averages
                         // Total Avg Sim Score / Total Avg  pred-couple subLink Count
-                        $predFeatureTensor[$foc."%%".$ref]['sameURI'] = ($foc == $ref);
-                        $predFeatureTensor[$foc."%%".$ref]['MU1_G'] = round($sum_I1/$sum_I3, 4);
+                        $predFeatureTensor[$foc."%%".$ref]['sem']['sameURI'] = ($foc == $ref);
+                        $predFeatureTensor[$foc."%%".$ref]['sem']['MU1_G'] = round($sum_I1/$sum_I3, 4);
                         // Sum(Local Avg Sim Score / Local pred-couple subLink Count) / Number of CBDs with the pred-couple
-                        $predFeatureTensor[$foc."%%".$ref]['MU1_E'] = round($sum_I1byI3/$numOfCBDsWithFocRef, 4);
+                        $predFeatureTensor[$foc."%%".$ref]['sem']['MU1_E'] = round($sum_I1byI3/$numOfCBDsWithFocRef, 4);
                         // Sum(Local Avg Sim Score / Local pred-couple subLink Count) / Number of CBDs with the pred-couple
-                        $predFeatureTensor[$foc."%%".$ref]['MU1_L'] = $checkTau;
+                        $predFeatureTensor[$foc."%%".$ref]['sem']['MU1_L'] = $checkTau;
 
-                        $predFeatureTensor[$foc."%%".$ref]['MU2_E'] = round($sum_I2/$numOfCBDsWithFocRef, 4);
-                        $predFeatureTensor[$foc."%%".$ref]['MU2_L'] = round($sum_I2/$fileCount, 4);
+                        $predFeatureTensor[$foc."%%".$ref]['sem']['MU2_E'] = round($sum_I2/$numOfCBDsWithFocRef, 4);
+                        $predFeatureTensor[$foc."%%".$ref]['sem']['MU2_L'] = round($sum_I2/$fileCount, 4);
 
-                        $predFeatureTensor[$foc."%%".$ref]['MU3_E'] = round($sum_I3/$numOfCBDsWithFocRef, 4);
-                        $predFeatureTensor[$foc."%%".$ref]['MU3_L'] = round($sum_I3/$fileCount, 4);
+                        $predFeatureTensor[$foc."%%".$ref]['sem']['MU3_E'] = round($sum_I3/$numOfCBDsWithFocRef, 4);
+                        $predFeatureTensor[$foc."%%".$ref]['sem']['MU3_L'] = round($sum_I3/$fileCount, 4);
 
-                        $predFeatureTensor[$foc."%%".$ref]['MU4_E'] = round($sum_I3byI2/$numOfCBDsWithFocRef, 4);
-                        $predFeatureTensor[$foc."%%".$ref]['MU4_L'] = round($sum_I3byI2/$fileCount, 4);
-                        $predFeatureTensor[$foc."%%".$ref]['MU4_G'] = round($sum_I3/$sum_I2, 4);
+                        $predFeatureTensor[$foc."%%".$ref]['sem']['MU4_E'] = round($sum_I3byI2/$numOfCBDsWithFocRef, 4);
+                        $predFeatureTensor[$foc."%%".$ref]['sem']['MU4_L'] = round($sum_I3byI2/$fileCount, 4);
+                        $predFeatureTensor[$foc."%%".$ref]['sem']['MU4_G'] = round($sum_I3/$sum_I2, 4);
 
-                        $predFeatureTensor[$foc."%%".$ref]['MU5_E'] = round($sum_I3byI5/$numOfCBDsWithFocRef, 4);
-                        $predFeatureTensor[$foc."%%".$ref]['MU5_L'] = round($sum_I3byI5/$fileCount, 4);
-                        $predFeatureTensor[$foc."%%".$ref]['MU5_G'] = round($sum_I3/$sum_I5, 4);
+                        $predFeatureTensor[$foc."%%".$ref]['sem']['MU5_E'] = round($sum_I3byI5/$numOfCBDsWithFocRef, 4);
+                        $predFeatureTensor[$foc."%%".$ref]['sem']['MU5_L'] = round($sum_I3byI5/$fileCount, 4);
+                        $predFeatureTensor[$foc."%%".$ref]['sem']['MU5_G'] = round($sum_I3/$sum_I5, 4);
+
+
+                        $sym_p[$foc][$ref] = dotProduct($predFeatureTensor[$foc . "%%" . $ref]['sem'], $semanticWeights);
 
                         $focusPattern[$foc] = true;
                         $refPattern[$ref] = true;
@@ -637,6 +679,7 @@
         $data_MU5_E_z = "";
         $data_MU5_L_z = "";
         $data_MU5_G_z = "";
+        $data_sym_p_z = "";
 
         foreach($refKeys as $ref){
             $data_sameURI_z .= "[";
@@ -653,23 +696,25 @@
             $data_MU5_E_z .= "[";
             $data_MU5_L_z .= "[";
             $data_MU5_G_z .= "[";
+            $data_sym_p_z .= "[";
 
             foreach($focusKeys as $foc){
-                if(isset($predFeatureTensor[$foc."%%".$ref]['MU1_G'])){
-                    $data_sameURI_z = $data_sameURI_z . $predFeatureTensor[$foc."%%".$ref]['sameURI'] .",";
-                    $data_MU1_G_z = $data_MU1_G_z . $predFeatureTensor[$foc."%%".$ref]['MU1_G'] .",";
-                    $data_MU1_E_z = $data_MU1_E_z . $predFeatureTensor[$foc."%%".$ref]['MU1_E'] .",";
-                    $data_MU1_L_z = $data_MU1_L_z . $predFeatureTensor[$foc."%%".$ref]['MU1_L'] .",";
-                    $data_MU2_E_z = $data_MU2_E_z . $predFeatureTensor[$foc."%%".$ref]['MU2_E'] .",";
-                    $data_MU2_L_z = $data_MU2_L_z . $predFeatureTensor[$foc."%%".$ref]['MU2_L'] .",";
-                    $data_MU3_E_z = $data_MU3_E_z . $predFeatureTensor[$foc."%%".$ref]['MU3_E'] .",";
-                    $data_MU3_L_z = $data_MU3_L_z . $predFeatureTensor[$foc."%%".$ref]['MU3_L'] .",";
-                    $data_MU4_E_z = $data_MU4_E_z . $predFeatureTensor[$foc."%%".$ref]['MU4_E'] .",";
-                    $data_MU4_L_z = $data_MU4_L_z . $predFeatureTensor[$foc."%%".$ref]['MU4_L'] .",";
-                    $data_MU4_G_z = $data_MU4_G_z . $predFeatureTensor[$foc."%%".$ref]['MU4_G'] .",";
-                    $data_MU5_E_z = $data_MU5_E_z . $predFeatureTensor[$foc."%%".$ref]['MU5_E'] .",";
-                    $data_MU5_L_z = $data_MU5_L_z . $predFeatureTensor[$foc."%%".$ref]['MU5_L'] .",";
-                    $data_MU5_G_z = $data_MU5_G_z . $predFeatureTensor[$foc."%%".$ref]['MU5_G'] .",";
+                if(isset($predFeatureTensor[$foc."%%".$ref]['sem']['MU1_G'])){
+                    $data_sameURI_z = $data_sameURI_z . $predFeatureTensor[$foc."%%".$ref]['sem']['sameURI'] .",";
+                    $data_MU1_G_z = $data_MU1_G_z . $predFeatureTensor[$foc."%%".$ref]['sem']['MU1_G'] .",";
+                    $data_MU1_E_z = $data_MU1_E_z . $predFeatureTensor[$foc."%%".$ref]['sem']['MU1_E'] .",";
+                    $data_MU1_L_z = $data_MU1_L_z . $predFeatureTensor[$foc."%%".$ref]['sem']['MU1_L'] .",";
+                    $data_MU2_E_z = $data_MU2_E_z . $predFeatureTensor[$foc."%%".$ref]['sem']['MU2_E'] .",";
+                    $data_MU2_L_z = $data_MU2_L_z . $predFeatureTensor[$foc."%%".$ref]['sem']['MU2_L'] .",";
+                    $data_MU3_E_z = $data_MU3_E_z . $predFeatureTensor[$foc."%%".$ref]['sem']['MU3_E'] .",";
+                    $data_MU3_L_z = $data_MU3_L_z . $predFeatureTensor[$foc."%%".$ref]['sem']['MU3_L'] .",";
+                    $data_MU4_E_z = $data_MU4_E_z . $predFeatureTensor[$foc."%%".$ref]['sem']['MU4_E'] .",";
+                    $data_MU4_L_z = $data_MU4_L_z . $predFeatureTensor[$foc."%%".$ref]['sem']['MU4_L'] .",";
+                    $data_MU4_G_z = $data_MU4_G_z . $predFeatureTensor[$foc."%%".$ref]['sem']['MU4_G'] .",";
+                    $data_MU5_E_z = $data_MU5_E_z . $predFeatureTensor[$foc."%%".$ref]['sem']['MU5_E'] .",";
+                    $data_MU5_L_z = $data_MU5_L_z . $predFeatureTensor[$foc."%%".$ref]['sem']['MU5_L'] .",";
+                    $data_MU5_G_z = $data_MU5_G_z . $predFeatureTensor[$foc."%%".$ref]['sem']['MU5_G'] .",";
+                    $data_sym_p_z = $data_sym_p_z . $sym_p[$foc][$ref] .",";
                 } else {
                     $data_sameURI_z .= "null,";
                     $data_MU1_G_z .= "null,";
@@ -685,6 +730,7 @@
                     $data_MU5_E_z .= "null,";
                     $data_MU5_L_z .= "null,";
                     $data_MU5_G_z .= "null,";
+                    $data_sym_p_z .= "null,";
                 }
             }
 
@@ -702,6 +748,7 @@
             $data_MU5_E_z .= "],";
             $data_MU5_L_z .= "],";
             $data_MU5_G_z .= "],";
+            $data_sym_p_z .= "],";
         }
 
         setProgress(8, "Preparing data for heatmaps ...");
@@ -734,6 +781,12 @@
             <div class='col-4'><div id='MU5_G'></div></div>
             <div class='col-4'><div id='MU5_E'></div></div>
             <div class='col-4'><div id='MU5_L'></div></div>
+        </div>
+        <div class='clearfix'></div>
+        <div class='row'>
+            <div class='col-4'><div id='sym_p'></div></div>
+            <div class='col-4'></div>
+            <div class='col-4'></div>
         </div>
         <div class='clearfix'></div>
 
@@ -1025,6 +1078,26 @@
                 };
         
             Plotly.newPlot('MU5_L', data_MU5_L, Lay_MU5_L, {responsive: true});
+
+            var data_sym_p = [{
+                            z: [<?php echo $data_sym_p_z;?>
+                            ],
+                            x: <?php echo json_encode($focusKeys); ?>,
+                            y: <?php echo json_encode($refKeys); ?>,
+                            type: 'heatmap',
+                            hoverongaps: false,
+                            xgap :3,
+                            ygap :3
+                        }];
+            var Lay_sym_p = {
+                        title:'sym_p <br><span style="font-size:10px;"></span>',
+                        margin:{
+                            l:150,
+                            b:50
+                        }
+                };
+        
+            Plotly.newPlot('sym_p', data_sym_p, Lay_sym_p, {responsive: true});
 
         </script>
 

@@ -1,6 +1,6 @@
 # Archer
 
-Analysis and Similarity Link Annotation with Extracted Uncertainty.
+Contextual Uncertainty evaluation for Linked Data Sources.
 
 ## Under developement
 
