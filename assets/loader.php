@@ -1,90 +1,60 @@
 <?php
 
-$tau_o = $_REQUEST['tau_l'];
-$tau_avg = $_REQUEST['tau_g'];
-$w_val = $_REQUEST['w_val'];
-$folder = $_REQUEST['folder'];
-$method = $_REQUEST['method'];
+if (!isset($_REQUEST['analyse'])) {
+    // Specific parameter analysis
+    $tau_o = $_REQUEST['tau_l'];
+    $tau_avg = $_REQUEST['tau_g'];
+    $w_val = $_REQUEST['w_val'];
+    $folder = $_REQUEST['folder'];
+    $method = $_REQUEST['method'];
+    $cbdID    = $_REQUEST['key'];
 
-$json = json_decode(file_get_contents("../results/links/{$folder}/{$method}/{$tau_o}_{$tau_avg}_{$w_val}.json"), true);
+    if (!file_exists("../results/links/{$folder}/{$method}/heat_{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}.json")) {
+        die("No such file for the selected parameters.");
+    }
+    $json = json_decode(file_get_contents("../results/links/{$folder}/{$method}/heat_{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}.json"), true);
 
-$heat = $json['data'];
-$focusKeys = $json['foc'];
-$refKeys = $json['ref'];
+    $heat = $json['data'];
+    $focusKeys = json_encode(array_values($json['foc']));
+    $refKeys = json_encode(array_values($json['ref']));
 
 ?>
-
-    <div class='row'>
-        <div class='col-4'>
-            <div id='MU1_G'></div>
-        </div>
-        <div class='col-4'>
-            <div id='MU1_E'></div>
-        </div>
-        <div class='col-4'>
-            <div id='MU1_L'></div>
-        </div>
-    </div>
-    <div class='clearfix'></div>
-    <div class='row'>
-        <div class='col-4'>
-            <div id='sameURI'></div>
-        </div>
-        <div class='col-4'>
-            <div id='MU2_E'></div>
-        </div>
-        <div class='col-4'>
-            <div id='MU2_L'></div>
-        </div>
-    </div>
-    <div class='clearfix'></div>
-    <div class='row'>
-        <div class='col-6'>
-            <div id='MU3_E'></div>
-        </div>
-        <div class='col-6'>
-            <div id='MU3_L'></div>
-        </div>
-    </div>
-    <div class='clearfix'></div>
-    <div class='row'>
-        <div class='col-4'>
-            <div id='MU4_G'></div>
-        </div>
-        <div class='col-4'>
-            <div id='MU4_E'></div>
-        </div>
-        <div class='col-4'>
-            <div id='MU4_L'></div>
-        </div>
-    </div>
-    <div class='clearfix'></div>
-    <div class='row'>
-        <div class='col-4'>
-            <div id='MU5_G'></div>
-        </div>
-        <div class='col-4'>
-            <div id='MU5_E'></div>
-        </div>
-        <div class='col-4'>
-            <div id='MU5_L'></div>
-        </div>
-    </div>
-    <div class='clearfix'></div>
-    <div class='row'>
+    <div class='row p-3'>
         <div class='col-4'>
             <div id='sym_p'></div>
         </div>
-        <div class='col-4'></div>
-        <div class='col-4'></div>
+        <div class='col-8'>
+            <div class='card card-body fixedBot'>
+                <p>The uncertainty of each focus graph \(PSI_r(G_f)\) is calculated by: averaging the sum of products (object similarity X predicate similarity) for each evidence link. </p>
+                <p>The uncertainty of each context is calculated by: averaging the sum of products (object similarity X predicate similarity) for each evidence link. </p>
+            </div>
+        </div>
     </div>
     <div class='clearfix'></div>
+    <div class='card card-body'>
+        <a data-toggle='collapse' href='#collapseScore' role='button' aria-expanded='false' aria-controls='collapseScore'>Detailed Scores</a>
+        <div class='collapse row' id='collapseScore'>
+            <div class='col-6'>
+                <div id='MU1_L'></div>
+            </div>
+            <div class='col-6'>
+                <div id='sameURI'></div>
+            </div>
+            <div class="w-100"></div>
+            <div class='col-6'>
+                <div id='MU4_L'></div>
+            </div>
+            <div class='col-6'>
+                <div id='MU5_L'></div>
+            </div>
+        </div>
+    </div>
 
     <script>
         var data_sameURI = [{
             z: [<?php echo $heat['sameURI']; ?>],
-            x: <?php echo json_encode($focusKeys); ?>,
-            y: <?php echo json_encode($refKeys); ?>,
+            x: <?php echo $focusKeys; ?>,
+            y: <?php echo $refKeys; ?>,
             type: 'heatmap',
             hoverongaps: false,
             xgap: 3,
@@ -93,10 +63,8 @@ $refKeys = $json['ref'];
             zmin: 0,
             zmax: 1,
             colorscale: [
-                [0, '#ff4757'],
-                [<?php echo ($tau_avg - 0.01 * $tau_avg); ?>, '#ffffff'],
-                [<?php echo $tau_avg; ?>, '#7bed9f'],
-                [1, '#000000']
+                [0, '#ee5253'],
+                [1, '#10ac84']
             ]
         }];
         var Lay_sameURI = {
@@ -110,80 +78,20 @@ $refKeys = $json['ref'];
             responsive: true
         });
 
-        var data_MU1_G = [{
-            z: [<?php echo $heat['MU1_G']; ?>],
-            x: <?php echo json_encode($focusKeys); ?>,
-            y: <?php echo json_encode($refKeys); ?>,
-            type: 'heatmap',
-            hoverongaps: false,
-            xgap: 3,
-            ygap: 3,
-            zauto: false,
-            zmin: 0,
-            zmax: 1,
-            colorscale: [
-                [0, '#ff4757'],
-                [<?php echo ($tau_avg - 0.01 * $tau_avg); ?>, '#ffffff'],
-                [<?php echo $tau_avg; ?>, '#7bed9f'],
-                [1, '#000000']
-            ]
-        }];
-        var Lay_MU1_G = {
-            title: 'MU1_G <br><span style="font-size:10px;">Sum(AvgSimPerPredCoupleCBD)/Sum(NumberofLinks)</span>',
-            margin: {
-                l: 150,
-                b: 50
-            }
-        };
-        Plotly.newPlot('MU1_G', data_MU1_G, Lay_MU1_G, {
-            responsive: true
-        });
-
-        var data_MU1_E = [{
-            z: [<?php echo $heat['MU1_E']; ?>],
-            x: <?php echo json_encode($focusKeys); ?>,
-            y: <?php echo json_encode($refKeys); ?>,
-            type: 'heatmap',
-            hoverongaps: false,
-            xgap: 3,
-            ygap: 3,
-            zauto: false,
-            zmin: 0,
-            zmax: 1,
-            colorscale: [
-                [0, '#ff4757'],
-                [<?php echo ($tau_avg - 0.01 * $tau_avg); ?>, '#ffffff'],
-                [<?php echo $tau_avg; ?>, '#7bed9f'],
-                [1, '#000000']
-            ]
-        }];
-        var Lay_MU1_E = {
-            title: 'MU1_E <br><span style="font-size:10px;">Sum(localAvgSimPerPred/localSublink)/NumCBDwithExistSublink</span>',
-            margin: {
-                l: 150,
-                b: 50
-            }
-        };
-        Plotly.newPlot('MU1_E', data_MU1_E, Lay_MU1_E, {
-            responsive: true
-        });
-
         var data_MU1_L = [{
             z: [<?php echo $heat['MU1_L']; ?>],
-            x: <?php echo json_encode($focusKeys); ?>,
-            y: <?php echo json_encode($refKeys); ?>,
+            x: <?php echo $focusKeys; ?>,
+            y: <?php echo $refKeys; ?>,
             type: 'heatmap',
             hoverongaps: false,
             xgap: 3,
             ygap: 3,
             zauto: false,
-            zmin: 0,
+            zmin: <?php echo $tau_avg; ?>,
             zmax: 1,
             colorscale: [
-                [0, '#ff4757'],
-                [<?php echo ($tau_avg - 0.01 * $tau_avg); ?>, '#ffffff'],
-                [<?php echo $tau_avg; ?>, '#7bed9f'],
-                [1, '#000000']
+                [0, '#ee5253'],
+                [1, '#10ac84']
             ]
         }];
         var Lay_MU1_L = {
@@ -197,140 +105,19 @@ $refKeys = $json['ref'];
             responsive: true
         });
 
-        var data_MU2_E = [{
-            z: [<?php echo $heat['MU2_E']; ?>],
-            x: <?php echo json_encode($focusKeys); ?>,
-            y: <?php echo json_encode($refKeys); ?>,
-            type: 'heatmap',
-            hoverongaps: false,
-            xgap: 3,
-            ygap: 3
-        }];
-        var Lay_MU2_E = {
-            title: 'MU2_E <br><span style="font-size:10px;">Sum(PredCoupleCombiCountPerCBD)/NumCBDwithExistSublink</span>',
-            margin: {
-                l: 150,
-                b: 50
-            }
-        };
-
-        Plotly.newPlot('MU2_E', data_MU2_E, Lay_MU2_E, {
-            responsive: true
-        });
-
-        var data_MU2_L = [{
-            z: [<?php echo $heat['MU2_L']; ?>],
-            x: <?php echo json_encode($focusKeys); ?>,
-            y: <?php echo json_encode($refKeys); ?>,
-            type: 'heatmap',
-            hoverongaps: false,
-            xgap: 3,
-            ygap: 3
-        }];
-        var Lay_MU2_L = {
-            title: 'MU2_L <br><span style="font-size:10px;">Sum(PredCoupleCombiCountPerCBD)/TotalNumCBDs</span>',
-            margin: {
-                l: 150,
-                b: 50
-            }
-        };
-
-        Plotly.newPlot('MU2_L', data_MU2_L, Lay_MU2_L, {
-            responsive: true
-        });
-
-        var data_MU3_E = [{
-            z: [<?php echo $heat['MU3_E']; ?>],
-            x: <?php echo json_encode($focusKeys); ?>,
-            y: <?php echo json_encode($refKeys); ?>,
-            type: 'heatmap',
-            hoverongaps: false,
-            xgap: 3,
-            ygap: 3
-        }];
-        var Lay_MU3_E = {
-            title: 'MU3_E <br><span style="font-size:10px;">Sum(PredCoupleSublinkCountPerCBD)/NumCBDwithExistSublink</span>',
-            margin: {
-                l: 150,
-                b: 50
-            }
-        };
-
-        Plotly.newPlot('MU3_E', data_MU3_E, Lay_MU3_E, {
-            responsive: true
-        });
-
-        var data_MU3_L = [{
-            z: [<?php echo $heat['MU3_L']; ?>],
-            x: <?php echo json_encode($focusKeys); ?>,
-            y: <?php echo json_encode($refKeys); ?>,
-            type: 'heatmap',
-            hoverongaps: false,
-            xgap: 3,
-            ygap: 3
-        }];
-        var Lay_MU3_L = {
-            title: 'MU3_L <br><span style="font-size:10px;">Sum(PredCoupleSublinkCountPerCBD)/TotalNumCBDs</span>',
-            margin: {
-                l: 150,
-                b: 50
-            }
-        };
-
-        Plotly.newPlot('MU3_L', data_MU3_L, Lay_MU3_L, {
-            responsive: true
-        });
-
-        var data_MU4_G = [{
-            z: [<?php echo $heat['MU4_G']; ?>],
-            x: <?php echo json_encode($focusKeys); ?>,
-            y: <?php echo json_encode($refKeys); ?>,
-            type: 'heatmap',
-            hoverongaps: false,
-            xgap: 3,
-            ygap: 3
-        }];
-        var Lay_MU4_G = {
-            title: 'MU4_G <br><span style="font-size:10px;"></span>',
-            margin: {
-                l: 150,
-                b: 50
-            }
-        };
-
-        Plotly.newPlot('MU4_G', data_MU4_G, Lay_MU4_G, {
-            responsive: true
-        });
-
-        var data_MU4_E = [{
-            z: [<?php echo $heat['MU4_E']; ?>],
-            x: <?php echo json_encode($focusKeys); ?>,
-            y: <?php echo json_encode($refKeys); ?>,
-            type: 'heatmap',
-            hoverongaps: false,
-            xgap: 3,
-            ygap: 3
-        }];
-        var Lay_MU4_E = {
-            title: 'MU4_E <br><span style="font-size:10px;"></span>',
-            margin: {
-                l: 150,
-                b: 50
-            }
-        };
-
-        Plotly.newPlot('MU4_E', data_MU4_E, Lay_MU4_E, {
-            responsive: true
-        });
-
         var data_MU4_L = [{
             z: [<?php echo $heat['MU4_L']; ?>],
-            x: <?php echo json_encode($focusKeys); ?>,
-            y: <?php echo json_encode($refKeys); ?>,
+            x: <?php echo $focusKeys; ?>,
+            y: <?php echo $refKeys; ?>,
             type: 'heatmap',
             hoverongaps: false,
             xgap: 3,
-            ygap: 3
+            ygap: 3,
+            colorscale: [
+                [0, '#ee5253'],
+                [1, '#10ac84']
+            ]
+
         }];
         var Lay_MU4_L = {
             title: 'MU4_L <br><span style="font-size:10px;"></span>',
@@ -344,56 +131,19 @@ $refKeys = $json['ref'];
             responsive: true
         });
 
-        var data_MU5_G = [{
-            z: [<?php echo $heat['MU5_G']; ?>],
-            x: <?php echo json_encode($focusKeys); ?>,
-            y: <?php echo json_encode($refKeys); ?>,
-            type: 'heatmap',
-            hoverongaps: false,
-            xgap: 3,
-            ygap: 3
-        }];
-        var Lay_MU5_G = {
-            title: 'MU5_G <br><span style="font-size:10px;"></span>',
-            margin: {
-                l: 150,
-                b: 50
-            }
-        };
-
-        Plotly.newPlot('MU5_G', data_MU5_G, Lay_MU5_G, {
-            responsive: true
-        });
-
-        var data_MU5_E = [{
-            z: [<?php echo $heat['MU5_E']; ?>],
-            x: <?php echo json_encode($focusKeys); ?>,
-            y: <?php echo json_encode($refKeys); ?>,
-            type: 'heatmap',
-            hoverongaps: false,
-            xgap: 3,
-            ygap: 3
-        }];
-        var Lay_MU5_E = {
-            title: 'MU5_E <br><span style="font-size:10px;"></span>',
-            margin: {
-                l: 150,
-                b: 50
-            }
-        };
-
-        Plotly.newPlot('MU5_E', data_MU5_E, Lay_MU5_E, {
-            responsive: true
-        });
-
         var data_MU5_L = [{
             z: [<?php echo $heat['MU5_L']; ?>],
-            x: <?php echo json_encode($focusKeys); ?>,
-            y: <?php echo json_encode($refKeys); ?>,
+            x: <?php echo $focusKeys; ?>,
+            y: <?php echo $refKeys; ?>,
             type: 'heatmap',
             hoverongaps: false,
             xgap: 3,
-            ygap: 3
+            ygap: 3,
+            colorscale: [
+                [0, '#ee5253'],
+                [1, '#10ac84']
+            ]
+
         }];
         var Lay_MU5_L = {
             title: 'MU5_L <br><span style="font-size:10px;"></span>',
@@ -409,12 +159,17 @@ $refKeys = $json['ref'];
 
         var data_sym_p = [{
             z: [<?php echo $heat['sym_p']; ?>],
-            x: <?php echo json_encode($focusKeys); ?>,
-            y: <?php echo json_encode($refKeys); ?>,
+            x: <?php echo $focusKeys; ?>,
+            y: <?php echo $refKeys; ?>,
             type: 'heatmap',
             hoverongaps: false,
             xgap: 3,
-            ygap: 3
+            ygap: 3,
+            colorscale: [
+                [0, '#ee5253'],
+                [1, '#10ac84']
+            ]
+
         }];
         var Lay_sym_p = {
             title: 'sym_p <br><span style="font-size:10px;"></span>',
@@ -429,9 +184,94 @@ $refKeys = $json['ref'];
         });
     </script>
 
-    <div class='card card-body fixedBot'>
-        <a data-toggle='collapse' href='#collapseDiv' role='button' aria-expanded='false' aria-controls='collapseDiv'>Debug information</a>
-        <div class='collapse' id='collapseDiv'>
-            <?php var_dump(json_encode($data, JSON_PRETTY_PRINT)); ?>
+<?php
+} else {
+    // Show Parameter effect on indicators
+    $folder = $_REQUEST['folder'];
+    $method = $_REQUEST['method'];
+    $tau_l  = $_REQUEST['tau_l'];
+    $tau_g  = $_REQUEST['tau_g'];
+    $w_val  = $_REQUEST['w_val'];
+
+    $fileCount = floor(count(glob("../results/" . $folder . "/*.json")) / 2);
+    $linkNumber = array();
+    $CoupleNumber = array();
+
+    for ($key = 0; $key < $fileCount; $key++) {
+        $json = json_decode(file_get_contents("../results/links/{$folder}/{$method}/feat_{$key}_{$tau_l}_{$tau_g}_{$w_val}.json"), true);
+
+        $linkNumber[$key + 1]     = $json['totalLinks'];
+        $CoupleNumber[$key + 1]   = $json['CoupleNumber'];
+    }
+
+?>
+    <div class='row p-3'>
+        <div class='col-6'>
+            <div id='cbdEffectLN'></div>
+        </div>
+        <div class='col-6'>
+            <div id='cbdEffectCpN'></div>
         </div>
     </div>
+
+    <script>
+        var data_cbdEffectLN = [{
+            x: <?php echo json_encode(array_keys($linkNumber)); ?>,
+            y: <?php echo json_encode(array_values($linkNumber)); ?>,
+            mode: 'lines+markers',
+            marker: {
+                color: 'rgb(128, 0, 128)',
+                size: 8
+            },
+            line: {
+                color: 'rgb(128, 0, 128)',
+                width: 1
+            }
+        }];
+        data_cbdEffectLN[0]['x'].unshift(0);
+        data_cbdEffectLN[0]['y'].unshift(0);
+        var Lay_cbdEffectLN = {
+            title: 'Number of Evidence links per Analysed Resources<br><span style="font-size:10px;"></span>',
+            margin: {
+                l: 150,
+                b: 50
+            }
+        };
+
+        Plotly.newPlot('cbdEffectLN', data_cbdEffectLN, Lay_cbdEffectLN, {
+            responsive: true
+        });
+
+        var data_cbdEffectCpN = [{
+            x: <?php echo json_encode(array_keys($CoupleNumber)); ?>,
+            y: <?php echo json_encode(array_values($CoupleNumber)); ?>,
+            mode: 'lines+markers',
+            marker: {
+                color: 'rgb(128, 0, 128)',
+                size: 8
+            },
+            line: {
+                color: 'rgb(128, 0, 128)',
+                width: 1
+            }
+        }];
+        data_cbdEffectCpN[0]['x'].unshift(0);
+        data_cbdEffectCpN[0]['y'].unshift(0);
+        var Lay_cbdEffectCpN = {
+            title: 'Number of Predicate-Couples per Analysed Resources <br><span style="font-size:10px;"></span>',
+            margin: {
+                l: 150,
+                b: 50
+            }
+        };
+
+        Plotly.newPlot('cbdEffectCpN', data_cbdEffectCpN, Lay_cbdEffectCpN, {
+            responsive: true
+        });
+    </script>
+
+<?php
+}
+
+
+?>

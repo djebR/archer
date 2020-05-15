@@ -12,7 +12,7 @@
             margin: 20px;
         }
 
-        a {
+        li a {
             color: white;
         }
 
@@ -59,6 +59,7 @@
     </style>
 
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
 </head>
 
 <body>
@@ -119,7 +120,7 @@
                         $c0 = count($s0);
                         $c1 = count($s1);
 
-                        echo "<li><a class='linkResult' href='#{$key}' data-key='{$key}'>" . urldecode(basename($indices[$key][1])) . "</a><span class='triple1_{$key} badge badge-primary float-right'>{$c1}</span><span class='triple0_{$key} badge badge-warning float-right'>{$c0}</span></li>";
+                        echo "<li data-key='{$key}'><a class='linkResult' href='#{$key}' data-key='{$key}'>" . urldecode(basename($indices[$key][1])) . "</a><span class='triple1_{$key} badge badge-primary float-right'>{$c1}</span><span class='triple0_{$key} badge badge-warning float-right'>{$c0}</span></li>";
                     }
                     echo "</ul>";
                 } else {
@@ -129,21 +130,52 @@
 
             </div>
             <div class="col-sm-9 col-sm-offset-3">
-                <div class="topbar row ">
-                    <div class="form-group col-4">
-                        <label for="w_val">Weight for value</label>
-                        <input class="form-control" type="text" id="w_val" value="1" />
-                    </div>
-                    <div class="form-group col-4">
+                <div class="topbar row">
+                    <div class="form-group col-2">
                         <label for="tau_l">Local threshold</label>
-                        <input class="form-control" type="text" id="tau_l" value="0.5" />
+                        <select id='tau_l' class="form-control form-control-sm">
+                            <option value='0'>0</option>
+                            <option value='0.25'>0.25</option>
+                            <option value='0.5'>0.5</option>
+                            <option value='0.75'>0.75</option>
+                            <option value='1'>1</option>
+                        </select>
                     </div>
-                    <div class="form-group col-4">
+                    <div class="form-group col-2">
                         <label for="tau_g">Global threshold</label>
-                        <input class="form-control" type="text" id="tau_g" value="0.5" />
+                        <select id='tau_g' class="form-control form-control-sm">
+                            <option value='0'>0</option>
+                            <option value='0.25'>0.25</option>
+                            <option value='0.5'>0.5</option>
+                            <option value='0.75'>0.75</option>
+                            <option value='1'>1</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-2">
+                        <label for="w_val">Weight for value</label>
+                        <select id='w_val' class="form-control form-control-sm">
+                            <option value='0'>0</option>
+                            <option value='0.25'>0.25</option>
+                            <option value='0.5'>0.5</option>
+                            <option value='0.75'>0.75</option>
+                            <option value='1'>1</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-2">
+                        <label for="key">File Count</label>
+                        <select id='key' class="form-control form-control-sm">
+                            <?php
+                            for ($i = 0; $i < $fileCount; $i++) {
+                                echo "<option value='{$i}'>" . ($i + 1) . "</option>";
+                            }
+                            ?>
+                        </select>
+                    </div>
+                    <div class="form-group col-4 p-3" style="padding-top:30px;">
+                        <button class='loadResult btn btn-primary'>load Results</button>
+                        <button class='loadAnalysis btn btn-light'>load Analysis</button>
                     </div>
                     <div class="clearfix"></div>
-                    <button class='loadResult btn btn-primary float-right'>load Results</button>
                 </div>
 
                 <div class="clearfix"></div>
@@ -197,7 +229,24 @@
 
                 $.ajax({
                     type: "get",
-                    url: "assets/loader.php?tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethod').val() + "&folder=<?php echo isset($_REQUEST['folder']) ? $_REQUEST['folder'] : ""; ?>",
+                    url: "assets/loader.php?key=" + $('#key').val() + "&tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethod').val() + "&folder=<?php echo isset($_REQUEST['folder']) ? $_REQUEST['folder'] : ""; ?>",
+                    success: function(response) {
+                        $('.main').html(response);
+                        $('.spnn').hide();
+                        that.removeAttr("disabled");
+                    }
+                });
+
+            });
+
+            $('.loadAnalysis').on('click', function() {
+                var that = $(this);
+                that.attr("disabled", true);
+                $('.spnn').show();
+
+                $.ajax({
+                    type: "get",
+                    url: "assets/loader.php?analyse=0&tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethod').val() + "&folder=<?php echo isset($_REQUEST['folder']) ? $_REQUEST['folder'] : ""; ?>",
                     success: function(response) {
                         $('.main').html(response);
                         $('.spnn').hide();
@@ -207,6 +256,10 @@
 
             });
         </script>
+
+
+
+
 </body>
 
 </html>
