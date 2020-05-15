@@ -110,7 +110,7 @@
                     $indices = json_decode(file_get_contents($folder . ".json"));
 
                     echo "<p>Total sets: <span class='badge badge-danger float-right'>" . $fileCount . "</span></p>";
-                    echo "<ul>";
+                    echo "<ol>";
                     for ($key = 0; $key < $fileCount; $key++) {
 
                         // read files into json objects
@@ -122,7 +122,7 @@
 
                         echo "<li data-key='{$key}'><a class='linkResult' href='#{$key}' data-key='{$key}'>" . urldecode(basename($indices[$key][1])) . "</a><span class='triple1_{$key} badge badge-primary float-right'>{$c1}</span><span class='triple0_{$key} badge badge-warning float-right'>{$c0}</span></li>";
                     }
-                    echo "</ul>";
+                    echo "</ol>";
                 } else {
                     echo "<ul><li>Please set a valid folder in the parameters.</li></ul>";
                 }
@@ -133,27 +133,25 @@
                 <div class="topbar row">
                     <div class="form-group col-2">
                         <label for="tau_l">Local threshold</label>
-                        <select id='tau_l' class="form-control form-control-sm">
+                        <select id='tau_l' class="up form-control form-control-sm">
                             <option value='0'>0</option>
                             <option value='0.25'>0.25</option>
                             <option value='0.5'>0.5</option>
                             <option value='0.75'>0.75</option>
-                            <option value='1'>1</option>
                         </select>
                     </div>
                     <div class="form-group col-2">
                         <label for="tau_g">Global threshold</label>
-                        <select id='tau_g' class="form-control form-control-sm">
+                        <select id='tau_g' class="up form-control form-control-sm">
                             <option value='0'>0</option>
                             <option value='0.25'>0.25</option>
                             <option value='0.5'>0.5</option>
                             <option value='0.75'>0.75</option>
-                            <option value='1'>1</option>
                         </select>
                     </div>
                     <div class="form-group col-2">
                         <label for="w_val">Weight for value</label>
-                        <select id='w_val' class="form-control form-control-sm">
+                        <select id='w_val' class="up form-control form-control-sm">
                             <option value='0'>0</option>
                             <option value='0.25'>0.25</option>
                             <option value='0.5'>0.5</option>
@@ -163,7 +161,7 @@
                     </div>
                     <div class="form-group col-2">
                         <label for="key">File Count</label>
-                        <select id='key' class="form-control form-control-sm">
+                        <select id='key' class="up form-control form-control-sm">
                             <?php
                             for ($i = 0; $i < $fileCount; $i++) {
                                 echo "<option value='{$i}'>" . ($i + 1) . "</option>";
@@ -226,6 +224,7 @@
                 var that = $(this);
                 that.attr("disabled", true);
                 $('.spnn').show();
+                location.hash = "";
 
                 $.ajax({
                     type: "get",
@@ -243,7 +242,7 @@
                 var that = $(this);
                 that.attr("disabled", true);
                 $('.spnn').show();
-
+                location.hash = "analyse";
                 $.ajax({
                     type: "get",
                     url: "assets/loader.php?analyse=0&tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethod').val() + "&folder=<?php echo isset($_REQUEST['folder']) ? $_REQUEST['folder'] : ""; ?>",
@@ -251,6 +250,22 @@
                         $('.main').html(response);
                         $('.spnn').hide();
                         that.removeAttr("disabled");
+                    }
+                });
+
+            });
+
+            $('.up').on('change', function() {
+                var that = $(this);
+                $('.spnn').show();
+
+                var context = (location.hash.substr(1) == "analyse") ? "analyse=0&" : ("key=" + $('#key').val() + "&");
+                $.ajax({
+                    type: "get",
+                    url: "assets/loader.php?" + context + "tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethod').val() + "&folder=<?php echo isset($_REQUEST['folder']) ? $_REQUEST['folder'] : ""; ?>",
+                    success: function(response) {
+                        $('.main').html(response);
+                        $('.spnn').hide();
                     }
                 });
 

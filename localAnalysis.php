@@ -226,25 +226,21 @@ for ($key = 0; $key < $fileCount; $key++) {
     // Triple count in each representative set
     $counts['tripleCount'][0][$key] = count($s0);
     $counts['tripleCount'][1][$key] = count($s1);
-
-
     // analyse focus -> ref links
+    $LinkedPred[$key] = array();
+
+    // Check for links, push links into $LinkedPred
     foreach ($s0 as $triple0) {
         $p0 = prefixed($triple0->predicate);
-        // Count distinct predicates for Focus set (for I2 later)
+        // Count distinct predicates for Reference set (for I2 later)
         isset($counts[0][$p0][$key]) ? $counts[0][$p0][$key]++ : ($counts[0][$p0][$key] = 1);
+  
+        foreach ($s1 as $triple1) {
+            $p1 = prefixed($triple1->predicate);
 
-        // Check for links, push links into $LinkedPred
-        for ($w_val = 0; $w_val <= 1; $w_val += 0.25){
-            for ($tau_o = 0; $tau_o < 1; $tau_o += 0.25){
-                foreach ($s1 as $triple1) {
-                    $v = (1 - $w_val) * typeMatch($triple0->objectMeta, $triple1->objectMeta) + $w_val * valMatch($triple0->object, $triple1->object, $objectSymMethod);
-                
-                    if($v >= $tau_o){
-                        $LinkedPred["{$w_val}"]["{$tau_o}"][$key][] = array($triple0, $triple1, round($v, 6));
-                    } 
-                }
-            }
+            $v = valMatch($triple0->object, $triple1->object, $objectSymMethod);
+            $t = typeMatch($triple0->objectMeta, $triple1->objectMeta);
+            if($v && $t) $LinkedPred[$key][] = array($p0, $p1, $t, $v);
         }
     }
 
@@ -254,6 +250,7 @@ for ($key = 0; $key < $fileCount; $key++) {
         // Count distinct predicates for Reference set (for I2 later)
         isset($counts[1][$p1][$key]) ? $counts[1][$p1][$key]++ : ($counts[1][$p1][$key] = 1);
     }
+
 }
 
 // Now all links are stored in $LinkedPred[$w_val][$tau_o] (t1, t2, sym_o)
@@ -273,22 +270,30 @@ for ($w_val = 0; $w_val <= 1; $w_val += 0.25) {
 
             $scores = array();
 
-            foreach ($LinkedPred["{$w_val}"]["{$tau_o}"] as $cbdID => $sublinks) {
+            foreach ($LinkedPred as $cbdID => $sublinks) {
+                $focLocalKeys[$cbdID] = array();
+                $refLocalKeys[$cbdID] = array();
                 foreach ($sublinks as $sublink) {
-                    $p0 = prefixed($sublink[0]->predicate);
-                    $p1 = prefixed($sublink[1]->predicate);
-                    $score = $sublink[2];
+                    $t = $sublink[2];
+                    $v = $sublink[3];
 
-                    // Useful cumulative index
-                    $focLocalKeys[$cbdID][$p0] = 0;
-                    $refLocalKeys[$cbdID][$p1] = 0;
+                    $sym_o = (1-$w_val) * $t + $w_val * $v;
+                    if($sym_o > $tau_o){
+                        $p0 = $sublink[0];
+                        $p1 = $sublink[1];
 
-                    // Sum of object similarities (QoL) for p0-p1 couples in the current CBD
-                    isset($scores[$cbdID][$p0."%%".$p1]['I1']) ? ($scores[$cbdID][$p0."%%".$p1]['I1'] += $score)  : ($scores[$cbdID][$p0."%%".$p1]['I1'] = $score);
-                    // Count of possible p0-p1 links for the current CBD
-                    $scores[$cbdID][$p0."%%".$p1]['I2'] = $counts[0][$p0][$cbdID] * $counts[1][$p1][$cbdID];
-                    // Number of p0-p1 links in the current CBD
-                    isset($scores[$cbdID][$p0 . "%%" . $p1]['I3']) ? ($scores[$cbdID][$p0 . "%%" . $p1]['I3']++)          : ($scores[$cbdID][$p0 . "%%" . $p1]['I3'] = 1);
+                        // Useful cumulative index
+                        $focLocalKeys[$cbdID][$p0] = 0;
+                        $refLocalKeys[$cbdID][$p1] = 0;
+
+                        // Sum of object similarities (QoL) for p0-p1 couples in the current CBD
+                        isset($scores[$cbdID][$p0 . "%%" . $p1]['I1']) ? ($scores[$cbdID][$p0 . "%%" . $p1]['I1'] += $sym_o)  : ($scores[$cbdID][$p0 . "%%" . $p1]['I1'] = $sym_o);
+                        // Count of possible p0-p1 links for the current CBD
+                        $scores[$cbdID][$p0 . "%%" . $p1]['I2'] = $counts[0][$p0][$cbdID] * $counts[1][$p1][$cbdID];
+                        // Number of p0-p1 links in the current CBD
+                        isset($scores[$cbdID][$p0 . "%%" . $p1]['I3']) ? ($scores[$cbdID][$p0 . "%%" . $p1]['I3']++)          : ($scores[$cbdID][$p0 . "%%" . $p1]['I3'] = 1);
+
+                    }
                 }
             }
 
@@ -296,6 +301,8 @@ for ($w_val = 0; $w_val <= 1; $w_val += 0.25) {
             for($cbdID = 0; $cbdID < $fileCount; $cbdID++){
                 // Cumulative loop, to calculate the effect of link count on indicators
                 $couples = 0;
+                $sublinkCumulativeCount[$cbdID] = $counter;
+                $scores[$cbdID]['I5'] = 0;
 
                 $refCumulativeKeys    = array_unique(array_merge($refCumulativeKeys, array_keys($refLocalKeys[$cbdID])));
                 $focCumulativeKeys    = array_unique(array_merge($focCumulativeKeys, array_keys($focLocalKeys[$cbdID])));
@@ -309,33 +316,30 @@ for ($w_val = 0; $w_val <= 1; $w_val += 0.25) {
                 $heat['MU5_L'] = "";
                 $heat['sym_p'] = "";
 
-                $scores[$cbdID]['I5'] = 0;
                 // Only existing ref and foc hereby are accounted, with sliced focus and reference scores by CBD cumulative count
                 foreach ($refCumulativeKeys as $ref) {
                     foreach ($focCumulativeKeys as $foc) {
-                        if(isset($scores[$cbdID][$foc . "%%" . $ref]['I1'])){
-                            $v1 = isset($predFeatureTensor[$foc."%%".$ref]['sem']['MU1_L'])? $predFeatureTensor[$foc . "%%" . $ref]['sem']['MU1_L']:0;
-                            $v4 = isset($predFeatureTensor[$foc."%%".$ref]['sem']['MU4_L'])? $predFeatureTensor[$foc . "%%" . $ref]['sem']['MU4_L']:0;
+                        $v1 = isset($predFeatureTensor[$foc . "%%" . $ref]['sem']['MU1_L']) ? $predFeatureTensor[$foc . "%%" . $ref]['sem']['MU1_L'] : 0;
+                        $v4 = isset($predFeatureTensor[$foc . "%%" . $ref]['sem']['MU4_L']) ? $predFeatureTensor[$foc . "%%" . $ref]['sem']['MU4_L'] : 0;
+                        $vi1_3 = isset($scores[$cbdID][$foc . "%%" . $ref]['I1']) ? ($scores[$cbdID][$foc . "%%" . $ref]['I1']/ $scores[$cbdID][$foc . "%%" . $ref]['I3']) : 0;
+                        $vi3 = isset($scores[$cbdID][$foc . "%%" . $ref]['I3']) ? ($scores[$cbdID][$foc . "%%" . $ref]['I3']) : 0;
+                        $vi3_2 = isset($scores[$cbdID][$foc . "%%" . $ref]['I2']) ? ($scores[$cbdID][$foc . "%%" . $ref]['I3'] / $scores[$cbdID][$foc . "%%" . $ref]['I2']) : 0;
 
-                            $checkTau = ($v1 * $cbdID + $scores[$cbdID][$foc . "%%" . $ref]['I1'] / $scores[$cbdID][$foc . "%%" . $ref]['I3']) / ($cbdID + 1);
+                        $checkTau = ($v1 * $cbdID + $vi1_3) / ($cbdID + 1);
 
-                            if($checkTau >= $tau_avg){
+                        if($checkTau >= $tau_avg){
 
-                                $sublinkCumulativeCount[$cbdID] = $counter + $scores[$cbdID][$foc . "%%" . $ref]['I3'];
-                                $counter = $sublinkCumulativeCount[$cbdID];
-                                $scores[$cbdID]['I5'] += $scores[$cbdID][$foc . "%%" . $ref]['I3'];
-                                $couples++;
+                            $sublinkCumulativeCount[$cbdID] += $vi3;
+                            $counter = $sublinkCumulativeCount[$cbdID];
+                            $scores[$cbdID]['I5'] += $vi3;
+                            $couples++;
 
-                                $predFeatureTensor[$foc . "%%" . $ref]['sem']['sameURI']= ($foc == $ref) ? 1 : 0;
-                                $predFeatureTensor[$foc . "%%" . $ref]['sem']['MU1_L']  = $checkTau;
-                                $predFeatureTensor[$foc . "%%" . $ref]['sem']['MU4_L']  = ($v4 * $cbdID + $scores[$cbdID][$foc . "%%" . $ref]['I3'] / $scores[$cbdID][$foc . "%%" . $ref]['I2'])   / ($cbdID + 1);
-                                $exportKeys['foc'][] = $foc;
-                                $exportKeys['ref'][] = $ref;
-                            } else {
-                                $sublinkCumulativeCount[$cbdID] = $counter;
-                                if(!isset($scores[$cbdID]['I5'])) $scores[$cbdID]['I5'] = 0;
-                            }
-                        }
+                            $predFeatureTensor[$foc . "%%" . $ref]['sem']['sameURI']= ($foc == $ref) ? 1 : 0;
+                            $predFeatureTensor[$foc . "%%" . $ref]['sem']['MU1_L']  = $checkTau;
+                            $predFeatureTensor[$foc . "%%" . $ref]['sem']['MU4_L']  = ($v4 * $cbdID + $vi3_2)   / ($cbdID + 1);
+                            $exportKeys['foc'][] = $foc;
+                            $exportKeys['ref'][] = $ref;
+                        }  
                     }
                 }
 
@@ -350,12 +354,11 @@ for ($w_val = 0; $w_val <= 1; $w_val += 0.25) {
                     $heat['sym_p'] .= "[";
 
                     foreach ($focLocal as $foc) {
-                        if(isset($scores[$cbdID][$foc . "%%" . $ref]['I1']) && isset($predFeatureTensor[$foc . "%%" . $ref]['sem']['MU1_L'])){
+                        if(isset($predFeatureTensor[$foc . "%%" . $ref]['sem']['MU1_L'])){
                             $v5 = isset($predFeatureTensor[$foc . "%%" . $ref]['sem']['MU5_L']) ? $predFeatureTensor[$foc . "%%" . $ref]['sem']['MU5_L'] : 0;
-                            $vi5 = isset($scores[$cbdID]['I5']) ? $scores[$cbdID]['I5'] : 0;
-                            $v3 = ($vi5 == 0)?0:($scores[$cbdID][$foc . "%%" . $ref]['I3']/$vi5);
+                            $vi3_5 = isset($scores[$cbdID][$foc . "%%" . $ref]['I3']) ? ($scores[$cbdID][$foc . "%%" . $ref]['I3']/ $scores[$cbdID]['I5']) : 0;
                             
-                            $predFeatureTensor[$foc . "%%" . $ref]['sem']['MU5_L']  = ($v5 * $cbdID + $v3) / ($cbdID + 1);
+                            $predFeatureTensor[$foc . "%%" . $ref]['sem']['MU5_L']  = ($v5 * $cbdID + $vi3_5) / ($cbdID + 1);
 
                             $sym_p[$foc][$ref] = round(dotProduct($predFeatureTensor[$foc . "%%" . $ref]['sem'], $semanticWeights), 4);
 
@@ -385,7 +388,7 @@ for ($w_val = 0; $w_val <= 1; $w_val += 0.25) {
                 // Dump data for the current analysis, including, w_val, tau_l, cbdCount (avg will be added during post treatement)
 
                 // Dump numerical data for reuse
-                //var_dump($scores[$cbdID]);
+                
 
 
                 $p = fopen("results/links/" . $_REQUEST['folder'] . "/" . $_REQUEST['method'] . "/feat_{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}.json", "w");
@@ -408,5 +411,6 @@ for ($w_val = 0; $w_val <= 1; $w_val += 0.25) {
 }
 
 ob_end_flush();
+echo "Progress: 100% .. done<br/>";
 //session_destroy();
 ?>
