@@ -193,15 +193,30 @@ if (!isset($_REQUEST['analyse'])) {
     $tau_g  = $_REQUEST['tau_g'];
     $w_val  = $_REQUEST['w_val'];
 
-    $fileCount = floor(count(glob("../results/" . $folder . "/*.json")) / 2);
+    $fileCount = floor(count(glob("../results/" . $folder . "/*.json")) / 2) - 1;
     $linkNumber = array();
     $CoupleNumber = array();
+    $dd = array();
+    $dd2 = array();
 
-    for ($key = 0; $key < $fileCount; $key++) {
+    for ($key = 0; $key <= $fileCount; $key++) {
         $json = json_decode(file_get_contents("../results/links/{$folder}/{$method}/feat_{$key}_{$tau_l}_{$tau_g}_{$w_val}.json"), true);
 
         $linkNumber[$key + 1]     = $json['totalLinks'];
         $CoupleNumber[$key + 1]   = $json['CoupleNumber'];
+    }
+
+    for ($tau_o = 0; $tau_o < 1; $tau_o += 0.25) {
+        $row = array();
+        $row2 = array();
+        for ($tau_avg = 0; $tau_avg < 1; $tau_avg += 0.25) {
+            $json = json_decode(file_get_contents("../results/links/{$folder}/{$method}/feat_{$fileCount}_{$tau_o}_{$tau_avg}_1.json"), true);
+
+            $row[]     = $json['totalLinks'];
+            $row2[]   = $json['CoupleNumber'];
+        }
+        $dd[] = $row;
+        $dd2[] = $row2;
     }
 
 ?>
@@ -211,6 +226,14 @@ if (!isset($_REQUEST['analyse'])) {
         </div>
         <div class='col-6'>
             <div id='cbdEffectCpN'></div>
+        </div>
+    </div>
+    <div class='row p-3'>
+        <div class='col-6'>
+            <div id='plot3d'></div>
+        </div>
+        <div class='col-6'>
+            <div id='plot3d2'></div>
         </div>
     </div>
 
@@ -268,6 +291,71 @@ if (!isset($_REQUEST['analyse'])) {
         Plotly.newPlot('cbdEffectCpN', data_cbdEffectCpN, Lay_cbdEffectCpN, {
             responsive: true
         });
+
+
+        var data = [{
+            z: <?php echo json_encode($dd); ?>,
+            x: [0, 0.25, 0.5, 0.75],
+            y: [0, 0.25, 0.5, 0.75],
+            type: 'surface'
+        }];
+
+        var layout = {
+            title: 'LinkCount to local and avg thresholds',
+            scene: {
+                xaxis: {
+                    title: 'tau_avg'
+                },
+                yaxis: {
+                    title: 'tau_local'
+                },
+                zaxis: {
+                    title: 'LinkCount'
+                },
+            },
+            autosize: false,
+            width: 500,
+            height: 500,
+            margin: {
+                l: 65,
+                r: 50,
+                b: 65,
+                t: 90,
+            }
+        };
+        Plotly.newPlot('plot3d', data, layout);
+
+        var data2 = [{
+            z: <?php echo json_encode($dd2); ?>,
+            x: [0, 0.25, 0.5, 0.75],
+            y: [0, 0.25, 0.5, 0.75],
+            type: 'surface'
+        }];
+
+        var layout2 = {
+            title: 'PredCoupleCount to local and avg thresholds',
+            scene: {
+                xaxis: {
+                    title: 'tau_avg'
+                },
+                yaxis: {
+                    title: 'tau_local'
+                },
+                zaxis: {
+                    title: 'PredCoupleCount'
+                },
+            },
+            autosize: false,
+            width: 500,
+            height: 500,
+            margin: {
+                l: 65,
+                r: 50,
+                b: 65,
+                t: 90,
+            }
+        };
+        Plotly.newPlot('plot3d2', data2, layout2);
     </script>
 
 <?php

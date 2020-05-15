@@ -71,10 +71,6 @@
             <div class="sidebar col-sm-3 hidden-xs">
                 <h1>Archer</h1>
                 <p><a href='query.php'>&lt; Back to queries</a></p>
-                <p><button class='linkAll btn btn-primary'>Show full results
-                        <span class="spnn spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display:none;"></span>
-                        <span class="spnn sr-only" style="display:none;">Loading...</span>
-                    </button></p>
                 <div class="form-group row">
                     <label for="objSymMethod" class="col-sm-2 col-form-label">Object Similarity</label>
                     <div class="col-sm-10">
@@ -90,12 +86,6 @@
                         <div class="form-group row">
                             <label for="localTau">Local Tau:</label>
                             <input class="form-control" type="text" id="localTau" value="0.5" />
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="form-group row">
-                            <label for="avgTau">Avg. Tau:</label>
-                            <input class="form-control" type="text" id="avgTau" value="0.5" />
                         </div>
                     </div>
                 </div>
@@ -160,7 +150,7 @@
                         </select>
                     </div>
                     <div class="form-group col-2">
-                        <label for="key">File Count</label>
+                        <label for="key">Analysed resources</label>
                         <select id='key' class="up form-control form-control-sm">
                             <?php
                             for ($i = 0; $i < $fileCount; $i++) {
@@ -170,8 +160,12 @@
                         </select>
                     </div>
                     <div class="form-group col-4 p-3" style="padding-top:30px;">
-                        <button class='loadResult btn btn-primary'>load Results</button>
-                        <button class='loadAnalysis btn btn-light'>load Analysis</button>
+                        <button class='loadResult btn btn-primary'>load Results <span class="spnn spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display:none;"></span>
+                            <span class="spnn sr-only" style="display:none;">Loading...</span>
+                        </button>
+                        <button class='loadAnalysis btn btn-light'>load Analysis <span class="spnn spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display:none;"></span>
+                            <span class="spnn sr-only" style="display:none;">Loading...</span>
+                        </button>
                     </div>
                     <div class="clearfix"></div>
                 </div>
