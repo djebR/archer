@@ -164,7 +164,7 @@
                 $ss1 = str_split($s1);
                 $ss2 = str_split($s2);
                 $arr_intersection   = array_intersect($ss1, $ss2);
-                $arr_union          = array_merge($ss1, $ss2);
+                $arr_union          = array_unique(array_merge($ss1, $ss2));
                 $sim                = 2 * count( $arr_intersection ) / count( $arr_union );
                 break;
             case 'hamming':

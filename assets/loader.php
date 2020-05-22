@@ -27,6 +27,10 @@ if (!isset($_REQUEST['analyse'])) {
             <div class='card card-body fixedBot'>
                 <p>The uncertainty of each focus graph \(PSI_r(G_f)\) is calculated by: averaging the sum of products (object similarity X predicate similarity) for each evidence link. </p>
                 <p>The uncertainty of each context is calculated by: averaging the sum of products (object similarity X predicate similarity) for each evidence link. </p>
+                <div class="form-group">
+                    <label for="sym_p_range">Predicate similarity threshold : <span id="sym_p_val"></span></label>
+                    <input type="range" class="form-control-range" id="sym_p_range" min="0" max="1" step="0.001">
+                </div>
             </div>
         </div>
     </div>
@@ -165,6 +169,10 @@ if (!isset($_REQUEST['analyse'])) {
             hoverongaps: false,
             xgap: 3,
             ygap: 3,
+            zauto: false,
+            zmin: 0,
+            zmax: 1,
+
             colorscale: [
                 [0, '#ee5253'],
                 [1, '#10ac84']
@@ -181,6 +189,28 @@ if (!isset($_REQUEST['analyse'])) {
 
         Plotly.newPlot('sym_p', data_sym_p, Lay_sym_p, {
             responsive: true
+        });
+        var back = [<?php echo $heat['sym_p']; ?>];
+
+        $('#sym_p_range').on('change', function() {
+
+            var result = [];
+            var vald = $('#sym_p_range').val();
+            $('#sym_p_val').html(vald);
+            console.log(data_sym_p[0]['z']);
+            for (var i = 0; i < back.length; i++) {
+                result[i] = new Array(back[0].length).fill(null);
+
+                for (var j = 0; j < back[0].length; j++) {
+                    if (back[i][j] > vald) result[i][j] = back[i][j]; // Here is the fixed column access using the outter index i.
+                }
+            }
+            data_sym_p[0]['z'] = result;
+            console.log(data_sym_p[0]['z']);
+
+            Plotly.newPlot('sym_p', data_sym_p, Lay_sym_p, {
+                responsive: true
+            });
         });
     </script>
 
@@ -210,7 +240,7 @@ if (!isset($_REQUEST['analyse'])) {
         $row = array();
         $row2 = array();
         for ($tau_avg = 0; $tau_avg < 1; $tau_avg += 0.25) {
-            $json = json_decode(file_get_contents("../results/links/{$folder}/{$method}/feat_{$fileCount}_{$tau_o}_{$tau_avg}_1.json"), true);
+            $json = json_decode(file_get_contents("../results/links/{$folder}/{$method}/feat_{$fileCount}_{$tau_o}_{$tau_avg}_{$w_val}.json"), true);
 
             $row[]     = $json['totalLinks'];
             $row2[]   = $json['CoupleNumber'];
