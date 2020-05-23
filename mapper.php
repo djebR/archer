@@ -4,7 +4,7 @@
 
 <head>
 
-    <title>Archer: Analyse</title>
+    <title>Archer: Analyse <?php echo (isset($_REQUEST['folder']))?$_REQUEST['folder']:""; ?></title>
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <style>
@@ -76,7 +76,8 @@
                     <div class="col-sm-10">
                         <select id='objSymMethod' class="form-control form-control-sm">
                             <option value='default'>String equality</option>
-                            <option value='jaccard'>Jaccard</option>
+                            <option value='jaccard'>Jaccard (chars)</option>
+                            <option value='jaccard-word'>Jaccard (Words)</option>
                             <option value='jaro-winkler'>Jaro-Winkler</option>
                         </select>
                     </div>

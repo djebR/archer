@@ -249,7 +249,7 @@ if (!isset($_REQUEST['analyse'])) {
         $dd2[] = $row2;
     }
 
-?>
+    ?>
     <div class='row p-3'>
         <div class='col-6'>
             <div id='cbdEffectLN'></div>

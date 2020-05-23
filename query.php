@@ -4,133 +4,9 @@ if (isset($_REQUEST['qq'])) {
 
     header('Content-Type: application/json');
     ini_set('max_execution_time', 0); // to get unlimited php script execution time
-    /*
-            Helper functions
-        */
 
-    function getInstances($class, $source, $parameters, $limit = 500, $sourceSimilarity = null)
-    {
-
-        $query =
-            "SELECT distinct ?source1  " . (!is_null($sourceSimilarity) ? ("?source2") : "") . "
-                    WHERE {
-                        ?source1 a " . $class . " .
-                        " . (!is_null($sourceSimilarity) ? ("
-                        ?source1 <http://www.w3.org/2002/07/owl#sameAs> ?source2 .
-                        FILTER (CONTAINS(STR(?source2),'" . $sourceSimilarity . "'))
-                        ") : "") . "
-                    }
-                    LIMIT " . $limit;
-
-        $searchUrl = $source . "?" . $parameters['query'] . '=' . urlencode($query);
-        if (isset($parameters['format'])) $searchUrl .= '&format=' . $parameters['format'];
-        else $searchUrl .= '&format=json';
-
-        return $searchUrl;
-    }
-
-    // Change the CBD according to definition
-    // We limit the number of triples to 300 so that it doesn't explode
-    function getCBD($instance, $source, $parameters, $level = 1, $limit = 300, $symmetric = false, $withBlanks = false)
-    {
-
-        // -- QUERY START
-        // Clean Comments
-        $query = str_replace("%SUBJECT%", urldecode($instance), file_get_contents("queries/cbd.rq"));
-        $query = str_replace("%LIMITED%", $limit, $query);
-        // -- QUERY END
-
-        // Create the URL to query
-        $searchUrl = $source . "?" . $parameters['query'] . '=' . urlencode($query) . '&format=json';
-
-        return $searchUrl;
-    }
-
-    function getSymCBD($instance, $source, $parameters, $level = 1)
-    {
-        $query =
-            "SELECT ?predicate ?object
-            WHERE {{
-                <" . urldecode($instance) . "> ?predicate ?object .} UNION { ?object ?predicate <" . urldecode($instance) . "> .}";
-        if ($level > 1) {
-            for ($i = 1; $i < $level; $i++) {
-                // loop all the levels
-                $query .= " UNION {<" . urldecode($instance) . "> ?p0 ?o0 . ";
-
-                for ($j = 0; $j < $i; $j++) {
-                    $query .= "?o{$j} ?p" . ($j + 1) . " ?o" . ($j + 1) . ".";
-                }
-                $query .= "BIND(?p{$i} as ?predicate).";
-                $query .= "BIND(?o{$i} as ?object).";
-                $query .= "} UNION {";
-
-                for ($j = $i; $j > 0; $j--) {
-                    $query .= "?o" . ($j) . " ?p" . ($j) . " ?o" . ($j - 1) . " .";
-                }
-
-                $query .= "?o0 ?p0 <" . urldecode($instance) . ">. ";
-                $query .= "BIND(?p{$i} as ?predicate).";
-                $query .= "BIND(?o{$i} as ?object).";
-                $query .= "}";
-            }
-        }
-
-        $query .= "}";
-        $searchUrl = $source . "?" . $parameters['query'] . '=' . urlencode($query);
-        if (isset($parameters['format'])) $searchUrl .= '&format=' . $parameters['format'];
-
-        return $searchUrl;
-    }
-
-    function getCustomCBD($instance, $source, $parameters, $pattern)
-    {
-        $query =
-            "SELECT ?predicate ?object
-            WHERE {" . $pattern . "}";
-
-        $searchUrl = $source . "?" . $parameters['query'] . '=' . urlencode($query);
-        if (isset($parameters['format'])) $searchUrl .= '&format=' . $parameters['format'];
-
-        return $searchUrl;
-    }
-
-    function request($url)
-    {
-
-        // is curl installed?
-        if (!function_exists('curl_init')) {
-            die('CURL is not installed!');
-        }
-
-        // get curl handle
-        $ch = curl_init();
-
-        // set request url
-        curl_setopt(
-            $ch,
-            CURLOPT_URL,
-            $url
-        );
-
-        // return response, don't print/echo
-        curl_setopt(
-            $ch,
-            CURLOPT_RETURNTRANSFER,
-            true
-        );
-
-        /*
-            Here you find more options for curl:
-            http://www.php.net/curl_setopt
-            */
-
-        $response = curl_exec($ch);
-
-        curl_close($ch);
-
-        return $response;
-    }
-
+    include('assets/function.php');
+    
     $cbdAnswer = array();
     $indices = array();
     $instanceURL = getInstances("<" . $_REQUEST['class'] . ">", $_REQUEST['main'], array('query' => 'query', 'format' => 'json'), $_REQUEST["limit"], $_REQUEST["similarity"]);
@@ -290,10 +166,11 @@ if (isset($_REQUEST['qq'])) {
                             <div class="card">
                                 <div class="card-header">
                                     Or provide your custom linklist (N3 format)
-                                    <button class="btn btn-primary btn-sm float-right">Import</button>
+                                    <button id="importN3" type="button" class="btn btn-primary btn-sm float-right">Import</button>
+                                    <input type="text" class="form-control float-right form-control-sm col-3" id="listIRI" name="listIRI" placeholder="IRI for N3 file." value='' />
                                 </div>
                                 <div class="card-body">
-                                    <textarea class="form-control" aria-label="Custom linklist" rows="9"></textarea>
+                                    <textarea id="customLink" name="customLink" class="form-control" aria-label="Custom linklist" rows="9"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -342,7 +219,7 @@ if (isset($_REQUEST['qq'])) {
                         <ul><?php
                             $fileList = glob("results/*.json");
                             $fileCount = count($fileList);
-                            if($fileCount){
+                            if ($fileCount) {
                                 foreach ($fileList as $key => $filePath) {
                                     // read files into json objects
                                     //$s = json_decode(file_get_contents($file));
@@ -356,8 +233,8 @@ if (isset($_REQUEST['qq'])) {
                             } else {
                                 echo "<li>No previous queries to select from.</li>";
                             }
-                        ?></ul>
-                        
+                            ?></ul>
+
                     </div>
                 </div>
             </div>
@@ -389,6 +266,17 @@ if (isset($_REQUEST['qq'])) {
                     }
                 });
 
+            });
+
+            $("#importN3").on('click', function() {
+                $.ajax({
+                    mimeType: 'text/plain; charset=x-user-defined',
+                    url: $('#listIRI').val(),
+                    dataType: "text",
+                    success: function(data) {
+                        $("#customLink").text(data);
+                    }
+                });
             });
         </script>
 </body>
