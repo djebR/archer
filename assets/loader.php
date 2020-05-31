@@ -9,14 +9,14 @@ if (!isset($_REQUEST['analyse'])) {
     $method = $_REQUEST['method'];
     $cbdID    = $_REQUEST['key'];
 
-    if (!file_exists("../results/links/{$folder}/{$method}/heat_{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}.json")) {
+    if (!file_exists("../results/links/{$folder}/{$method}/heat.json")) {
         die("No such file for the selected parameters.");
     }
-    $json = json_decode(file_get_contents("../results/links/{$folder}/{$method}/heat_{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}.json"), true);
+    $json = json_decode(file_get_contents("../results/links/{$folder}/{$method}/heat.json"), true);
 
-    $heat = $json['data'];
-    $focusKeys = json_encode(array_values($json['foc']));
-    $refKeys = json_encode(array_values($json['ref']));
+    $heat = $json["{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}"]['data'];
+    $focusKeys = json_encode(array_values($json["{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}"]['foc']));
+    $refKeys = json_encode(array_values($json["{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}"]['ref']));
 
 ?>
     <div class='row p-3'>
@@ -223,33 +223,62 @@ if (!isset($_REQUEST['analyse'])) {
     $tau_g  = $_REQUEST['tau_g'];
     $w_val  = $_REQUEST['w_val'];
 
+    $methodName = array(
+        'jaccard' => 'jaccard (chars)',
+        'jaccard-word' => 'jaccard (words)',
+        'hamming' => 'hamming',
+        'jaro-winkler' => 'jaro-winkler',
+        'default' => 'String equality'
+    );
+
     $fileCount = floor(count(glob("../results/" . $folder . "/*.json")) / 2) - 1;
     $linkNumber = array();
     $CoupleNumber = array();
     $dd = array();
     $dd2 = array();
+    $json = json_decode(file_get_contents("../results/links/{$folder}/{$method}/feat.json"), true);
+    $jsonPred = json_decode(file_get_contents("../results/links/{$folder}/{$method}/predBox.json"), true);
+
+    // Prepare data 
 
     for ($key = 0; $key <= $fileCount; $key++) {
-        $json = json_decode(file_get_contents("../results/links/{$folder}/{$method}/feat_{$key}_{$tau_l}_{$tau_g}_{$w_val}.json"), true);
-
-        $linkNumber[$key + 1]     = $json['totalLinks'];
-        $CoupleNumber[$key + 1]   = $json['CoupleNumber'];
+        $linkNumber[0][$key + 1]     = $json["{$key}_0_{$tau_g}_{$w_val}"]['totalLinks'];
+        $CoupleNumber[0][$key + 1]   = $json["{$key}_0_{$tau_g}_{$w_val}"]['CoupleNumber'];
+        $linkNumber[1][$key + 1]     = $json["{$key}_0.25_{$tau_g}_{$w_val}"]['totalLinks'];
+        $CoupleNumber[1][$key + 1]   = $json["{$key}_0.25_{$tau_g}_{$w_val}"]['CoupleNumber'];
+        $linkNumber[2][$key + 1]     = $json["{$key}_0.5_{$tau_g}_{$w_val}"]['totalLinks'];
+        $CoupleNumber[2][$key + 1]   = $json["{$key}_0.5_{$tau_g}_{$w_val}"]['CoupleNumber'];
+        $linkNumber[3][$key + 1]     = $json["{$key}_0.75_{$tau_g}_{$w_val}"]['totalLinks'];
+        $CoupleNumber[3][$key + 1]   = $json["{$key}_0.75_{$tau_g}_{$w_val}"]['CoupleNumber'];
     }
 
     for ($tau_o = 0; $tau_o < 1; $tau_o += 0.25) {
         $row = array();
         $row2 = array();
         for ($tau_avg = 0; $tau_avg < 1; $tau_avg += 0.25) {
-            $json = json_decode(file_get_contents("../results/links/{$folder}/{$method}/feat_{$fileCount}_{$tau_o}_{$tau_avg}_{$w_val}.json"), true);
 
-            $row[]     = $json['totalLinks'];
-            $row2[]   = $json['CoupleNumber'];
+            $row[]     = $json["{$fileCount}_{$tau_o}_{$tau_avg}_{$w_val}"]['totalLinks'];
+            $row2[]   = $json["{$fileCount}_{$tau_o}_{$tau_avg}_{$w_val}"]['CoupleNumber'];
         }
         $dd[] = $row;
         $dd2[] = $row2;
     }
 
-    ?>
+    $dataPred = array();
+    $coupleCounter = count($jsonPred["{$tau_l}_{$tau_g}_{$w_val}"]);
+    // Loop through pred-couple indicators
+    $i = 1;
+    foreach ($jsonPred["{$tau_l}_{$tau_g}_{$w_val}"] as $couple => $predArray) {
+        $color1 = round(255 / $coupleCounter * $i, 0);
+        $color2 = 255 - $color1;
+        $dataPred['R1'][] = "{y: " . json_encode(array_values($predArray['R1'])) . ",type:'box',name:'" . $couple . "',marker:{color:'rgb(" . $color1 . "," . $color2 . ",255)'},boxmean:true}";
+        $dataPred['R2'][] = "{y: " . json_encode(array_values($predArray['R2'])) . ",type:'box',name:'" . $couple . "',marker:{color:'rgb(" . $color1 . "," . $color2 . ",255)'},boxmean:true}";
+        $dataPred['R3'][] = "{y: " . json_encode(array_values($predArray['R3'])) . ",type:'box',name:'" . $couple . "',marker:{color:'rgb(" . $color1 . "," . $color2 . ",255)'},boxmean:true}";
+        $i++;
+    }
+
+    // Print results
+?>
     <div class='row p-3'>
         <div class='col-6'>
             <div id='cbdEffectLN'></div>
@@ -266,28 +295,67 @@ if (!isset($_REQUEST['analyse'])) {
             <div id='plot3d2'></div>
         </div>
     </div>
+    <div class='row p-3'>
+        <div class='col-12'>
+            <div id='R1'></div>
+        </div>
+        <div class='col-12'>
+            <div id='R2'></div>
+        </div>
+        <div class='col-12'>
+            <div id='R3'></div>
+        </div>
+    </div>
 
     <script>
-        var data_cbdEffectLN = [{
-            x: <?php echo json_encode(array_keys($linkNumber)); ?>,
-            y: <?php echo json_encode(array_values($linkNumber)); ?>,
-            mode: 'lines+markers',
-            marker: {
-                color: 'rgb(128, 0, 128)',
-                size: 8
-            },
-            line: {
-                color: 'rgb(128, 0, 128)',
-                width: 1
-            }
-        }];
-        data_cbdEffectLN[0]['x'].unshift(0);
-        data_cbdEffectLN[0]['y'].unshift(0);
+        var data_cbd0 = {
+            x: <?php echo json_encode(array_keys($linkNumber[0])); ?>,
+            y: <?php echo json_encode(array_values($linkNumber[0])); ?>,
+            mode: 'scatter',
+            name: '$\\tau_{obj} = 0$'
+        };
+        var data_cbd1 = {
+            x: <?php echo json_encode(array_keys($linkNumber[1])); ?>,
+            y: <?php echo json_encode(array_values($linkNumber[1])); ?>,
+            mode: 'scatter',
+            name: '$\\tau_{obj} = 0.25$'
+        };
+        var data_cbd2 = {
+            x: <?php echo json_encode(array_keys($linkNumber[2])); ?>,
+            y: <?php echo json_encode(array_values($linkNumber[2])); ?>,
+            mode: 'scatter',
+            name: '$\\tau_{obj} = 0.5$'
+        };
+        var data_cbd3 = {
+            x: <?php echo json_encode(array_keys($linkNumber[3])); ?>,
+            y: <?php echo json_encode(array_values($linkNumber[3])); ?>,
+            mode: 'scatter',
+            name: '$\\tau_{obj} = 0.75$'
+        };
+
+        data_cbd0['x'].unshift(0);
+        data_cbd0['y'].unshift(0);
+        data_cbd1['x'].unshift(0);
+        data_cbd1['y'].unshift(0);
+        data_cbd2['x'].unshift(0);
+        data_cbd2['y'].unshift(0);
+        data_cbd3['x'].unshift(0);
+        data_cbd3['y'].unshift(0);
+
+        var data_cbdEffectLN = [data_cbd0, data_cbd1, data_cbd2, data_cbd3];
+
         var Lay_cbdEffectLN = {
-            title: 'Number of Evidence links per Analysed Resources<br><span style="font-size:10px;"></span>',
+            title: 'Number of Total Evidence links/|LS(D_t, D_r)|<br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, tau_{sem} = <?php echo $tau_g; ?>, w_{val} = <?php echo $w_val; ?></span>',
             margin: {
                 l: 150,
                 b: 50
+            },
+            xaxis: {
+                title: '$|LS(D_t, D_r)|$'
+            },
+            yaxis: {
+                title: '$$\\sum{|E(G_{D_t}(e_t), G_{D_r}(e_r))|}$$'
+
             }
         };
 
@@ -295,26 +363,53 @@ if (!isset($_REQUEST['analyse'])) {
             responsive: true
         });
 
-        var data_cbdEffectCpN = [{
-            x: <?php echo json_encode(array_keys($CoupleNumber)); ?>,
-            y: <?php echo json_encode(array_values($CoupleNumber)); ?>,
-            mode: 'lines+markers',
-            marker: {
-                color: 'rgb(128, 0, 128)',
-                size: 8
-            },
-            line: {
-                color: 'rgb(128, 0, 128)',
-                width: 1
-            }
-        }];
-        data_cbdEffectCpN[0]['x'].unshift(0);
-        data_cbdEffectCpN[0]['y'].unshift(0);
+        var data_cpn0 = {
+            x: <?php echo json_encode(array_keys($CoupleNumber[0])); ?>,
+            y: <?php echo json_encode(array_values($CoupleNumber[0])); ?>,
+            mode: 'scatter',
+            name: '$\\tau_{obj} = 0$'
+        };
+        var data_cpn1 = {
+            x: <?php echo json_encode(array_keys($CoupleNumber[1])); ?>,
+            y: <?php echo json_encode(array_values($CoupleNumber[1])); ?>,
+            mode: 'scatter',
+            name: '$\\tau_{obj} = 0.25$'
+        };
+        var data_cpn2 = {
+            x: <?php echo json_encode(array_keys($CoupleNumber[2])); ?>,
+            y: <?php echo json_encode(array_values($CoupleNumber[2])); ?>,
+            mode: 'scatter',
+            name: '$\\tau_{obj} = 0.5$'
+        };
+        var data_cpn3 = {
+            x: <?php echo json_encode(array_keys($CoupleNumber[3])); ?>,
+            y: <?php echo json_encode(array_values($CoupleNumber[3])); ?>,
+            mode: 'scatter',
+            name: '$\\tau_{obj} = 0.75$'
+        };
+
+        data_cpn0['x'].unshift(0);
+        data_cpn0['y'].unshift(0);
+        data_cpn1['x'].unshift(0);
+        data_cpn1['y'].unshift(0);
+        data_cpn2['x'].unshift(0);
+        data_cpn2['y'].unshift(0);
+        data_cpn3['x'].unshift(0);
+        data_cpn3['y'].unshift(0);
+
+        var data_cbdEffectCpN = [data_cpn0, data_cpn1, data_cpn2, data_cpn3];
+
         var Lay_cbdEffectCpN = {
-            title: 'Number of Predicate-Couples per Analysed Resources <br><span style="font-size:10px;"></span>',
+            title: 'Number of Predicate-Couples/|LS(D_t, D_r)|<br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, tau_{sem} = <?php echo $tau_g; ?>, w_{val} = <?php echo $w_val; ?></span>',
             margin: {
                 l: 150,
                 b: 50
+            },
+            xaxis: {
+                title: '$|LS(D_t, D_r)|$'
+            },
+            yaxis: {
+                title: 'Distinct Predicate-couple count'
             }
         };
 
@@ -327,11 +422,11 @@ if (!isset($_REQUEST['analyse'])) {
             z: <?php echo json_encode($dd); ?>,
             x: [0, 0.25, 0.5, 0.75],
             y: [0, 0.25, 0.5, 0.75],
-            type: 'surface'
+            type: 'surface',
         }];
 
         var layout = {
-            title: 'LinkCount to local and avg thresholds',
+            title: 'sum(|E(G_{D_t}(e_t), G_{D_r}(e_r))|) to thresholds<br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, |LS(D_t, D_r)| = <?php echo $fileCount; ?>, w_{val} = <?php echo $w_val; ?></span>',
             scene: {
                 xaxis: {
                     title: 'tau_avg'
@@ -363,7 +458,7 @@ if (!isset($_REQUEST['analyse'])) {
         }];
 
         var layout2 = {
-            title: 'PredCoupleCount to local and avg thresholds',
+            title: 'Predicate-Couple Count to thresholds<br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, |LS(D_t, D_r)| = <?php echo $fileCount; ?>, w_{val} = <?php echo $w_val; ?></span>',
             scene: {
                 xaxis: {
                     title: 'tau_avg'
@@ -386,6 +481,30 @@ if (!isset($_REQUEST['analyse'])) {
             }
         };
         Plotly.newPlot('plot3d2', data2, layout2);
+
+        var data_R1 = <?php echo "[" . implode(",", $dataPred['R1']) . "]"; ?>;
+
+        var layout_R1 = {
+            title: 'R1(p1,p2) <br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, |LS(D_t, D_r)| = <?php echo $fileCount; ?>, w_{val} = <?php echo $w_val; ?>, tau_{obj} = <?php echo $tau_l; ?>, tau_{sem} = <?php echo $tau_g; ?>, Pred-Couples = <?php echo $coupleCounter; ?></span>'
+        };
+
+        Plotly.newPlot('R1', data_R1, layout_R1);
+
+        var data_R2 = <?php echo "[" . implode(",", $dataPred['R2']) . "]"; ?>;
+
+        var layout_R2 = {
+            title: 'R2(p1,p2) <br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, |LS(D_t, D_r)| = <?php echo $fileCount; ?>, w_{val} = <?php echo $w_val; ?>, tau_{obj} = <?php echo $tau_l; ?>, tau_{sem} = <?php echo $tau_g; ?>, Pred-Couples = <?php echo $coupleCounter; ?></span>'
+        };
+
+        Plotly.newPlot('R2', data_R2, layout_R2);
+
+        var data_R3 = <?php echo "[" . implode(",", $dataPred['R3']) . "]"; ?>;
+
+        var layout_R3 = {
+            title: 'R3(p1,p2) <br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, |LS(D_t, D_r)| = <?php echo $fileCount; ?>, w_{val} = <?php echo $w_val; ?>, tau_{obj} = <?php echo $tau_l; ?>, tau_{sem} = <?php echo $tau_g; ?>, Pred-Couples = <?php echo $coupleCounter; ?></span>'
+        };
+
+        Plotly.newPlot('R3', data_R3, layout_R3);
     </script>
 
 <?php

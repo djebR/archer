@@ -415,12 +415,12 @@
         foreach(array_keys($refPredicates) as $ref){
             foreach(array_keys($focusPredicates) as $foc){
                 if(isset($focusPredicates[$foc][$ref])){
-                    // We check here per rep-set couple and for $foc-$ref sublinks
+                // We check here per rep-set couple and for $foc-$ref sublinks
 
 
-                    // Sums
-                   
-                    $sum_I1byI3             = array_sum(array_map(function($a, $b){return $a/$b;}, $focusPredicates[$foc][$ref], $refPredicates[$ref][$foc]));
+                // Sums
+                $R[$foc . "%%" . $ref]['R3']                     = array_map(function ($a, $b) {return $a / $b;}, $focusPredicates[$foc][$ref], $refPredicates[$ref][$foc]);
+                    $sum_I1byI3             = array_sum($R[$foc . "%%" . $ref]['R3']);
                     $checkTau               = round($sum_I1byI3/$fileCount, 4);
                     if($checkTau >= $tau_avg){
 
@@ -440,8 +440,10 @@
                         $sum_I3                 = array_sum($refPredicates[$ref][$foc]);
                         $sum_I2                 = array_sum($predFeatureTensor[$foc."%%".$ref]['I2']);
                         $sum_I5                 = array_sum($counts['LinkCount']);
-                        $sum_I3byI2             = array_sum(array_map(function($a, $b){return $a/$b;}, $predFeatureTensor[$foc."%%".$ref]['I3'], $predFeatureTensor[$foc."%%".$ref]['I2']));
-                        $sum_I3byI5             = array_sum(array_map(function($a, $b){return ($b>0)?($a/$b):0;}, $predFeatureTensor[$foc."%%".$ref]['I3'], $counts['LinkCount']));
+                    $R[$foc . "%%" . $ref]['R2']                     = array_map(function ($a, $b) {return $a / $b;}, $predFeatureTensor[$foc . "%%" . $ref]['I3'], $predFeatureTensor[$foc . "%%" . $ref]['I2']);
+                        $sum_I3byI2             = array_sum($R[$foc . "%%" . $ref]['R2']);
+                    $R[$foc . "%%" . $ref]['R1']                     = array_map(function($a, $b){return ($b>0)?($a/$b):0;}, $predFeatureTensor[$foc."%%".$ref]['I3'], $counts['LinkCount']);
+                        $sum_I3byI5             = array_sum($R[$foc . "%%" . $ref]['R1']);
 
                     // Averages
                         // Total Avg Sim Score / Total Avg  pred-couple subLink Count
@@ -941,6 +943,10 @@
         </div>
 <?php
     // END -- Complete analysis    
+
+    $p = fopen("results/links/" . $_REQUEST['folder'] . "/" . $_REQUEST['method'] . "/pred.json", "w");
+    fwrite($p, json_encode($feat));
+    fclose($p);
     setProgress(10, "Done.");  
     }
 

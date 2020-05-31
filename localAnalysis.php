@@ -91,7 +91,12 @@ for ($key = 0; $key < $fileCount; $key++) {
     }
 
 }
-
+$p = fopen("results/links/" . $_REQUEST['folder'] . "/" . $_REQUEST['method'] . "/feat.json", "w");
+$h = fopen("results/links/" . $_REQUEST['folder'] . "/" . $_REQUEST['method'] . "/heat.json", "w");
+$c = fopen("results/links/" . $_REQUEST['folder'] . "/" . $_REQUEST['method'] . "/predBox.json", "w");
+$feat = array();
+$heater = array();
+$predBox = array();
 // Now all links are stored in $LinkedPred[$w_val][$tau_o] (t1, t2, sym_o)
 // we analyse for each w_val, tau_o, tau_avg and progressive filecount
 for ($w_val = 0; $w_val <= 1; $w_val += 0.25) {
@@ -171,8 +176,9 @@ for ($w_val = 0; $w_val <= 1; $w_val += 0.25) {
                             $sublinkCumulativeCount[$cbdID] += $vi3;
                             $counter = $sublinkCumulativeCount[$cbdID];
                             $scores[$cbdID]['I5'] += $vi3;
-                            $couples++;
 
+                            $predBox["{$tau_o}_{$tau_avg}_{$w_val}"][$foc . "%%" . $ref]['R3'][$cbdID] = round($vi1_3,4);
+                            $predBox["{$tau_o}_{$tau_avg}_{$w_val}"][$foc . "%%" . $ref]['R2'][$cbdID] = round($vi3_2,4);
                             $predFeatureTensor[$foc . "%%" . $ref]['sem']['sameURI']= ($foc == $ref) ? 1 : 0;
                             $predFeatureTensor[$foc . "%%" . $ref]['sem']['MU1_L']  = $checkTau;
                             $predFeatureTensor[$foc . "%%" . $ref]['sem']['MU4_L']  = ($v4 * $cbdID + $vi3_2)   / ($cbdID + 1);
@@ -198,14 +204,20 @@ for ($w_val = 0; $w_val <= 1; $w_val += 0.25) {
                             $vi3_5 = isset($scores[$cbdID][$foc . "%%" . $ref]['I3']) ? ($scores[$cbdID][$foc . "%%" . $ref]['I3']/ $scores[$cbdID]['I5']) : 0;
                             
                             $predFeatureTensor[$foc . "%%" . $ref]['sem']['MU5_L']  = ($v5 * $cbdID + $vi3_5) / ($cbdID + 1);
+                            $predBox["{$tau_o}_{$tau_avg}_{$w_val}"][$foc . "%%" . $ref]['R1'][$cbdID] = round($vi3_5, 4);
 
                             $sym_p[$foc][$ref] = round(dotProduct($predFeatureTensor[$foc . "%%" . $ref]['sem'], $semanticWeights), 4);
 
+                            if($sym_p[$foc][$ref]>0){
+                                $couples++;
+                                $heat['sym_p']   = $heat['sym_p'] . $sym_p[$foc][$ref] . ",";
+                            } else {
+                                $heat['sym_p'] .= "null,";
+                            }
                             $heat['sameURI'] = $heat['sameURI'] . $predFeatureTensor[$foc . "%%" . $ref]['sem']['sameURI'] . ",";
                             $heat['MU1_L']   = $heat['MU1_L'] . round($predFeatureTensor[$foc . "%%" . $ref]['sem']['MU1_L'], 6) . ",";
                             $heat['MU4_L']   = $heat['MU4_L'] . round($predFeatureTensor[$foc . "%%" . $ref]['sem']['MU4_L'], 4) . ",";
                             $heat['MU5_L']   = $heat['MU5_L'] . round($predFeatureTensor[$foc . "%%" . $ref]['sem']['MU5_L'], 4) . ",";
-                            $heat['sym_p']   = $heat['sym_p'] . $sym_p[$foc][$ref] . ",";
 
                         } else {
                             $heat['sameURI'] .= "null,";
@@ -230,15 +242,14 @@ for ($w_val = 0; $w_val <= 1; $w_val += 0.25) {
                 
 
 
-                $p = fopen("results/links/" . $_REQUEST['folder'] . "/" . $_REQUEST['method'] . "/feat_{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}.json", "w");
-                fwrite($p, json_encode(array("totalLinks" => $sublinkCumulativeCount[$cbdID], "CoupleNumber" => $couples)));
                 //fwrite($p, json_encode(array("data" => $predFeatureTensor, "foc" => $focCumulativeKeys, "ref" => $refCumulativeKeys)));
-                fclose($p);
 
+                $feat["{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}"] = array("totalLinks" => $sublinkCumulativeCount[$cbdID], "CoupleNumber" => $couples, "couples");
+                $heater["{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}"] = array("data" => $heat, "foc" => $focLocal, "ref" => $refLocal);
                 // Dump heatmaps as strings (for easy loading with js)
-                $h = fopen("results/links/" . $_REQUEST['folder'] . "/" . $_REQUEST['method'] . "/heat_{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}.json", "w");
-                fwrite($h, json_encode(array("data" => $heat, "foc" => $focLocal, "ref" => $refLocal)));
-                fclose($h);
+                //$h = fopen("results/links/" . $_REQUEST['folder'] . "/" . $_REQUEST['method'] . "/heat_{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}.json", "w");
+                //fwrite($h, json_encode(array("data" => $heat, "foc" => $focLocal, "ref" => $refLocal)));
+                //fclose($h);
 
 
             }
@@ -248,7 +259,12 @@ for ($w_val = 0; $w_val <= 1; $w_val += 0.25) {
         flush();
     }
 }
-
+fwrite($p, json_encode($feat));
+fwrite($h, json_encode($heater));
+fwrite($c, json_encode($predBox));
+fclose($p);
+fclose($h);
+fclose($c);
 ob_end_flush();
 echo "Progress: 100% .. done<br/>";
 //session_destroy();
