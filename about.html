@@ -15,17 +15,6 @@
     <link href="https://getbootstrap.com/docs/4.5/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
 
-    <!-- Favicons -->
-    <link rel="apple-touch-icon" href="https://getbootstrap.com/docs/4.5/assets/img/favicons/apple-touch-icon.png" sizes="180x180">
-    <link rel="icon" href="https://getbootstrap.com/docs/4.5/assets/img/favicons/favicon-32x32.png" sizes="32x32" type="image/png">
-    <link rel="icon" href="https://getbootstrap.com/docs/4.5/assets/img/favicons/favicon-16x16.png" sizes="16x16" type="image/png">
-    <link rel="manifest" href="https://getbootstrap.com/docs/4.5/assets/img/favicons/manifest.json">
-    <link rel="mask-icon" href="https://getbootstrap.com/docs/4.5/assets/img/favicons/safari-pinned-tab.svg" color="#563d7c">
-    <link rel="icon" href="https://getbootstrap.com/docs/4.5/assets/img/favicons/favicon.ico">
-    <meta name="msapplication-config" content="https://getbootstrap.com/docs/4.5/assets/img/favicons/browserconfig.xml">
-    <meta name="theme-color" content="#563d7c">
-
-
     <style>
         .bd-placeholder-img {
             font-size: 1.125rem;
@@ -49,13 +38,20 @@
     <div class="container">
 
         <h1>Archer: User guide</h1>
-        <p class="lead">Basic grid layouts to get you familiar with building within the Bootstrap grid system.</p>
-        <p>In these examples the <code>.themed-grid-col</code> class is added to the columns to add some theming. This
-            is not a class that is available in Bootstrap by default.</p>
+        <p class="lead">This tool allows you to evaluate and annotate your target dataset with uncertainty values, according to the uncertainty ontology <em>mUnc</em>.</p>
+        <p>In the next sections, we give a step-by-step guide from querying for target and reference focus graph, to annotating target data with uncertainty information. We offer an extended guide for each section as an interactive experience within the tool.</p>
 
-        <h2 class="mt-4">Provide identity links</h2>
-        <p>There are five tiers to the Bootstrap grid system, one for each range of devices we support. Each tier starts
-            at a minimum viewport size and automatically applies to the larger devices unless overridden.</p>
+        <h2 class="mt-4">Provide graph interlinks</h2>
+        <p>The first step is to provide graph interlinks between your target dataset and the reference one. Links are in the form:</p>
+        <p><code>&lt;IRI_target_resource&gt; &lt;linking_predicate&gt; &lt;IRI_reference_resource&gt;</code></p>
+        <p>for example, in order to assess the uncertainty of information about the resource dbp:Paris in dbpedia while taking the resource wiki:Q90 in Wikidata as a reference, we should provide the identity link: </p>
+        <p><code>&lt;http://dbpedia.org/resource/Paris&gt; &lt;owl:sameAs&gt; &lt;http://www.wikidata.org/entity/Q90&gt;</code></p>
+        <p>Identity links can be provided in two ways:
+            <ul>
+                <li>Automatically: by selecting a target and a reference SPARQL endpoints, the desired linking predicates (such as <i>owl:sameAs</i>, <i>skos:exactMatch</i>, etc). Archer will fetch a maximum number of links defined by the user.</li>
+                <li>Manually: directly into the field reserved for custom links or by importing existing links in a file. Links have to be in N3 format to be parsed correctly.</li>
+            </ul>
+        </p>
         <hr class="my-4">
 
         <h2 class="mt-4">Query for focus graphs</h2>

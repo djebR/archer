@@ -111,7 +111,7 @@
                         $c0 = count($s0);
                         $c1 = count($s1);
 
-                        echo "<li data-key='{$key}'><a class='linkResult' href='#{$key}' data-key='{$key}'>" . urldecode(basename($indices[$key][1])) . "</a><span class='triple1_{$key} badge badge-primary float-right'>{$c1}</span><span class='triple0_{$key} badge badge-warning float-right'>{$c0}</span></li>";
+                        echo "<li data-key='{$key}'><a class='linkResult' href='#{$key}' data-key='{$key}'>" . urldecode(basename($indices["results"][$key][1])) . "</a><span class='triple1_{$key} badge badge-primary float-right'>{$c1}</span><span class='triple0_{$key} badge badge-warning float-right'>{$c0}</span></li>";
                     }
                     echo "</ol>";
                 } else {

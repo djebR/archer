@@ -46,7 +46,16 @@ if (isset($_REQUEST['qq'])) {
 
             $indices[$key] = array($value['source1']['value'], $value['source2']['value']);
         }
-        fwrite($fold, json_encode($indices));
+        $meta = array(
+            "class"                 => $_REQUEST['class'],
+            "target"                => $_REQUEST['main'],
+            "reference"             => $_REQUEST['second'],
+            "limit"                 => $_REQUEST['limit'],
+            "realised"              => count($indices),
+            "linking_predicates"    => $_REQUEST['linkpreds'],
+            "pattern"               => $_REQUEST['similarity']
+        );
+        fwrite($fold, json_encode(array("meta" => $meta, "results" => $indices)));
         fclose($fold);
     }
     echo json_encode(array('result' => 1, 'folder' => md5($instanceURL)));
@@ -188,7 +197,7 @@ if (isset($_REQUEST['qq'])) {
                         </div>
                         <div class="col-6">
                             <div class="form-group row">
-                                <label for="second" class="col-sm-3 col-form-label">Reference dataset <span class="badge badge-info" data-toggle="tooltip" data-placement="right" title="(IRI) the SPARQL endpoint for your reference dataset (you use as a reference)">?</span></label>
+                                <label for="second" class="col-sm-3 col-form-label">Reference dataset <span class="badge badge-info" data-toggle="tooltip" data-placement="right" title="(IRI) the SPARQL endpoint for your reference dataset (the one you use as a reference)">?</span></label>
                                 <div class="col-sm-9">
                                     <input type="text" class="form-control" id="second" name="second" placeholder="SPARQL endpoint for reference dataset" value='<?php echo (!isset($_REQUEST["second"])) ? "" : $_REQUEST["second"]; ?>' />
                                 </div>
@@ -222,13 +231,13 @@ if (isset($_REQUEST['qq'])) {
                             if ($fileCount) {
                                 foreach ($fileList as $key => $filePath) {
                                     // read files into json objects
-                                    //$s = json_decode(file_get_contents($file));
-                                    //$meta = $s['meta'];
-                                    //$linkCount = $meta['linkCount'];
-                                    $filename = pathinfo($filePath)['filename'];
-                                    $linkCount = 0;
+                                    $s = json_decode(file_get_contents($file));
+                                    $meta = $s['meta'];
+                                    $linkCount = $meta['realised'];
+                                    $title = prefixed($meta['class']) . " in " . pathinfo($meta['target'])['filename'] . " based on " . pathinfo($meta['reference'])['filename'];
+                                    $filename = pathinfo($meta['reference'])['filename'];
 
-                                    echo "<li><a href='mapper.php?folder={$filename}'>" . $filename . "</a><span class='badge badge-primary float-right'>{$linkCount}</span></li>";
+                                    echo "<li><a href='mapper.php?folder={$filename}'>" . $title . "</a><span class='badge badge-primary float-right'>{$linkCount}</span></li>";
                                 }
                             } else {
                                 echo "<li>No previous queries to select from.</li>";
