@@ -15,8 +15,8 @@ if (isset($_REQUEST['qq'])) {
     // Todo: check for instance count before creating the folder to avoid duplicate result from possible non completely satisfied queries
     // Example: query for 1000 entries while only 100 exists, so one folder should be created for the 100 entities
 
-    if (!file_exists($folder)) {
-        mkdir($folder);
+    if (!file_exists($folder) && mkdir($folder)) {
+        
         $instanceArray = json_decode(request($instanceURL), true);
         $instanceCount = count($instanceArray["results"]["bindings"]);
 
@@ -57,6 +57,8 @@ if (isset($_REQUEST['qq'])) {
         );
         fwrite($fold, json_encode(array("meta" => $meta, "results" => $indices)));
         fclose($fold);
+    } else {
+        die("Error on permission");
     }
     echo json_encode(array('result' => 1, 'folder' => md5($instanceURL)));
     die();
