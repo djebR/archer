@@ -1,11 +1,11 @@
 <?php
+include('assets/function.php');
 
 if (isset($_REQUEST['qq'])) {
 
     header('Content-Type: application/json');
     ini_set('max_execution_time', 0); // to get unlimited php script execution time
 
-    include('assets/function.php');
     
     $cbdAnswer = array();
     $indices = array();
@@ -53,7 +53,8 @@ if (isset($_REQUEST['qq'])) {
             "limit"                 => $_REQUEST['limit'],
             "realised"              => count($indices),
             "linking_predicates"    => $_REQUEST['linkpreds'],
-            "pattern"               => $_REQUEST['similarity']
+            "pattern"               => $_REQUEST['similarity'],
+            "folder"                => md5($instanceURL)
         );
         fwrite($fold, json_encode(array("meta" => $meta, "results" => $indices)));
         fclose($fold);
@@ -233,11 +234,13 @@ if (isset($_REQUEST['qq'])) {
                             if ($fileCount) {
                                 foreach ($fileList as $key => $filePath) {
                                     // read files into json objects
-                                    $s = json_decode(file_get_contents($file));
+                                    $s = json_decode(file_get_contents($filePath), true);
                                     $meta = $s['meta'];
                                     $linkCount = $meta['realised'];
-                                    $title = prefixed($meta['class']) . " in " . pathinfo($meta['target'])['filename'] . " based on " . pathinfo($meta['reference'])['filename'];
-                                    $filename = pathinfo($meta['reference'])['filename'];
+                                    $target = parse_url($meta['target']);
+                                    $reference = parse_url($meta['reference']);
+                                    $title = "<kbd>" . prefixed($meta['class']) . "</kbd> in <kbd>" . ($target['host'].$target['path']). "</kbd> based on <kbd>" .  ($reference['host'].$reference['path']) . "</kbd>";
+                                    $filename = pathinfo($filePath)['filename'];
 
                                     echo "<li><a href='mapper.php?folder={$filename}'>" . $title . "</a><span class='badge badge-primary float-right'>{$linkCount}</span></li>";
                                 }
@@ -274,7 +277,12 @@ if (isset($_REQUEST['qq'])) {
                         $('#analyseAll').attr('href', 'mapper.php?folder=' + response.folder);
                         $('#analyseAll').show();
                         $('.spnn').hide();
-                    }
+                    },
+                    error: function(response) {
+                        $('.spnn').hide();
+                        alert("error in permission");
+                    },
+
                 });
 
             });

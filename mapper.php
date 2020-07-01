@@ -98,7 +98,7 @@
                 if (isset($_REQUEST['folder']) && file_exists("results/" . $_REQUEST['folder'] . ".json")) {
                     $folder = "results/" . $_REQUEST['folder'];
                     $fileCount = floor(count(glob($folder . "/*.json")) / 2);
-                    $indices = json_decode(file_get_contents($folder . ".json"));
+                    $indices = json_decode(file_get_contents($folder . ".json"), true);
 
                     echo "<p>Total sets: <span class='badge badge-danger float-right'>" . $fileCount . "</span></p>";
                     echo "<ol>";
@@ -110,7 +110,7 @@
 
                         $c0 = count($s0);
                         $c1 = count($s1);
-
+                        
                         echo "<li data-key='{$key}'><a class='linkResult' href='#{$key}' data-key='{$key}'>" . urldecode(basename($indices["results"][$key][1])) . "</a><span class='triple1_{$key} badge badge-primary float-right'>{$c1}</span><span class='triple0_{$key} badge badge-warning float-right'>{$c0}</span></li>";
                     }
                     echo "</ol>";
