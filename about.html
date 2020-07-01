@@ -39,7 +39,7 @@
         <p>The first step is to provide graph interlinks between your target dataset and the reference one. Links are in the form:</p>
         <p><code>&lt;IRI_target_resource&gt; &lt;linking_predicate&gt; &lt;IRI_reference_resource&gt;</code></p>
         <p>for example, in order to assess the uncertainty of information about the resource dbp:Paris in dbpedia while taking the resource wiki:Q90 in Wikidata as a reference, we should provide the identity link: </p>
-        <p><code>&lt;http://dbpedia.org/resource/Paris&gt; &lt;owl:sameAs&gt; &lt;http://www.wikidata.org/entity/Q90&gt;</code></p>
+        <p><code>&lt;http://dbpedia.org/resource/Paris&gt; &lt;http://www.w3.org/2002/07/owl#sameAs&gt; &lt;http://www.wikidata.org/entity/Q90&gt;</code></p>
         <p>Identity links can be provided in two ways:
             <ul>
                 <li>Automatically: by selecting a target and a reference SPARQL endpoints, the desired linking predicates (such as <i>owl:sameAs</i>, <i>skos:exactMatch</i>, etc). Archer will fetch a maximum number of links defined by the user.</li>
