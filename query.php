@@ -6,20 +6,21 @@ if (isset($_REQUEST['qq'])) {
     header('Content-Type: application/json');
     ini_set('max_execution_time', 0); // to get unlimited php script execution time
 
-    
     $cbdAnswer = array();
     $indices = array();
-    $instanceURL = getInstances("<" . $_REQUEST['class'] . ">", $_REQUEST['main'], array('query' => 'query', 'format' => 'json'), $_REQUEST["limit"], $_REQUEST["similarity"]);
-    $folder = "results/" . md5($instanceURL);
+    $predicates = explode(",",$_REQUEST['linkpreds']);
+    $instanceURL = getInstances("<" . $_REQUEST['class'] . ">", $_REQUEST['main'], array('query' => 'query', 'format' => 'json'), $_REQUEST["limit"], $_REQUEST["similarity"], $predicates);
 
     // Todo: check for instance count before creating the folder to avoid duplicate result from possible non completely satisfied queries
     // Example: query for 1000 entries while only 100 exists, so one folder should be created for the 100 entities
 
+    $instanceArray = json_decode(request($instanceURL), true);
+    $instanceCount = count($instanceArray["results"]["bindings"]);
+    $realURL = md5(getInstances("<" . $_REQUEST['class'] . ">", $_REQUEST['main'], array('query' => 'query', 'format' => 'json'), $instanceCount, $_REQUEST["similarity"]));
+    $folder = "results/" . md5($realURL);
+
     if (!file_exists($folder) && mkdir($folder)) {
         
-        $instanceArray = json_decode(request($instanceURL), true);
-        $instanceCount = count($instanceArray["results"]["bindings"]);
-
         // Results start
         $cbdURL = "";
         $fold = fopen($folder . ".json", 'w');

@@ -2,7 +2,79 @@
 
 include('jaro.php');
 
-function getInstances($class, $source, $parameters, $limit = 500, $sourceSimilarity = null){
+/**
+ * Prefix dictionnary
+ */
+$prefixDB = array(
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#"       => "rdf",
+    "http://xmlns.com/foaf/0.1/"                        => "foaf",
+    "http://yago-knowledge.org/resource/"               => "yago",
+    "http://www.w3.org/2000/01/rdf-schema#"             => "rdfs",
+    "http://dbpedia.org/ontology/"                      => "dbo",
+    "http://dbpedia.org/property/"                      => "dbp",
+    "http://dbpedia.org/ontology/Person/"               => "dbo-person",
+    "http://dbpedia.org/ontology/Work/"                 => "dbo-work",
+    "http://fr.dbpedia.org/property/"                   => "frdbp",
+    "http://purl.org/goodrelations/v1#"                 => "gr",
+    "http://purl.org/dc/elements/1.1/"                  => "dc",
+    "http://purl.org/linguistics/gold/"                  => "gold",
+    "http://www.w3.org/2002/07/owl#"                    => "owl",
+    "http://data.ordnancesurvey.co.uk/ontology/spatialrelations/"                       => "spacerel",
+    "http://www.w3.org/2004/02/skos/core#"              => "skos",
+    "http://www.opengis.net/ont/geosparql#"             => "geo",
+    "http://www.w3.org/ns/dcat#"                        => "dcat",
+    "http://www.w3.org/2001/XMLSchema#"                 => "xsd",
+    "http://www.loc.gov/mads/rdf/v1#"                   => "madsrdf",
+    "http://purl.org/net/ns/ontology-annot#"            => "ont",
+    "http://id.loc.gov/ontologies/bflc/"                => "bflc",
+    "http://purl.org/linked-data/cube#"                 => "qb",
+    "http://purl.org/xtypes/"                           => "xtypes",
+    "http://rdfs.org/sioc/ns#"                          => "sioc",
+    "http://www.w3.org/ns/org#"                         => "org",
+    "http://www.ontotext.com/"                          => "onto",
+    "http://www.w3.org/ns/prov#"                        => "prov",
+    "http://dbpedia.org/resource/"                      => "dbpedia",
+    "http://www.w3.org/ns/sparql-service-description#"  => "sd",
+    "http://www.w3.org/ns/people#"                      => "gldp",
+    "http://purl.org/rss/1.0/"                          => "rss",
+    "http://search.yahoo.com/searchmonkey/commerce/"    => "commerce",
+    "http://purl.org/dc/terms/"                         => "dcterms",
+    "http://rdfs.org/ns/void#"                          => "void",
+    "http://www.wikidata.org/entity/"                   => "wd",
+    "http://purl.org/ontology/bibo/"                    => "bibo",
+    "http://purl.org/NET/c4dm/event.owl#"               => "event",
+    "http://purl.org/dc/terms/"                         => "dct",
+    "http://www.geonames.org/ontology#"                 => "geonames",
+    "http://rdf.freebase.com/ns/"                       => "fb",
+    "http://purl.org/dc/dcmitype/"                      => "dcmit",
+    "http://purl.org/science/owl/sciencecommons/"       => "sc",
+    "http://www.w3.org/ns/md#"                          => "md",
+    "http://purl.org/prog/"                             => "prog",
+    "http://creativecommons.org/ns#"                    => "cc",
+
+
+    "http://purl.org/ontology/mo/"                      => "mo",
+    "http://purl.org/ontology/mbz#"                     => "mbz",
+    "http://purl.org/vocab/bio/0.1/"                    => "bio",
+    "http://www.holygoat.co.uk/owl/redwood/0.1/tags/"   => "tags",
+    "http://www.lingvoj.org/ontology#"                  => "lingvoj",
+    "http://purl.org/vocab/relationship/"               => "rel",
+    "http://dbtune.org/musicbrainz/resource/vocab/"     => "vocab",
+    "http://dbtune.org/musicbrainz/resource/"           => "dbtunes",
+);
+
+/**
+ * getInstances: dot product of two vectors (normal or associative)
+ * @param string $class first vector
+ * @param string $source second vector
+ * @param array $parameters second vector
+ * @param string $limit second vector
+ * @param string $sourceSimilarity second vector
+ * @param array $predicates second vector
+ * 
+ * @return string dot product of the two vectors
+ */
+function getInstances($class, $source, $parameters, $limit = 500, $sourceSimilarity = null, $predicates){
 
     $query =
         "SELECT distinct ?source1  " . (!is_null($sourceSimilarity) ? ("?source2") : "") . "
@@ -129,66 +201,7 @@ function request($url)
 
 // prefixed: give the prefixed version of a uri,
 // example: for "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" returns "rdf:type"
-function prefixed($uri)
-{
-    $prefixDB = array(
-        "http://www.w3.org/1999/02/22-rdf-syntax-ns#"       => "rdf",
-        "http://xmlns.com/foaf/0.1/"                        => "foaf",
-        "http://yago-knowledge.org/resource/"               => "yago",
-        "http://www.w3.org/2000/01/rdf-schema#"             => "rdfs",
-        "http://dbpedia.org/ontology/"                      => "dbo",
-        "http://dbpedia.org/property/"                      => "dbp",
-        "http://dbpedia.org/ontology/Person/"               => "dbo-person",
-        "http://dbpedia.org/ontology/Work/"                 => "dbo-work",
-        "http://fr.dbpedia.org/property/"                   => "frdbp",
-        "http://purl.org/goodrelations/v1#"                 => "gr",
-        "http://purl.org/dc/elements/1.1/"                  => "dc",
-        "http://purl.org/linguistics/gold/"                  => "gold",
-        "http://www.w3.org/2002/07/owl#"                    => "owl",
-        "http://data.ordnancesurvey.co.uk/ontology/spatialrelations/"                       => "spacerel",
-        "http://www.w3.org/2004/02/skos/core#"              => "skos",
-        "http://www.opengis.net/ont/geosparql#"             => "geo",
-        "http://www.w3.org/ns/dcat#"                        => "dcat",
-        "http://www.w3.org/2001/XMLSchema#"                 => "xsd",
-        "http://www.loc.gov/mads/rdf/v1#"                   => "madsrdf",
-        "http://purl.org/net/ns/ontology-annot#"            => "ont",
-        "http://id.loc.gov/ontologies/bflc/"                => "bflc",
-        "http://purl.org/linked-data/cube#"                 => "qb",
-        "http://purl.org/xtypes/"                           => "xtypes",
-        "http://rdfs.org/sioc/ns#"                          => "sioc",
-        "http://www.w3.org/ns/org#"                         => "org",
-        "http://www.ontotext.com/"                          => "onto",
-        "http://www.w3.org/ns/prov#"                        => "prov",
-        "http://dbpedia.org/resource/"                      => "dbpedia",
-        "http://www.w3.org/ns/sparql-service-description#"  => "sd",
-        "http://www.w3.org/ns/people#"                      => "gldp",
-        "http://purl.org/rss/1.0/"                          => "rss",
-        "http://search.yahoo.com/searchmonkey/commerce/"    => "commerce",
-        "http://purl.org/dc/terms/"                         => "dcterms",
-        "http://rdfs.org/ns/void#"                          => "void",
-        "http://www.wikidata.org/entity/"                   => "wd",
-        "http://purl.org/ontology/bibo/"                    => "bibo",
-        "http://purl.org/NET/c4dm/event.owl#"               => "event",
-        "http://purl.org/dc/terms/"                         => "dct",
-        "http://www.geonames.org/ontology#"                 => "geonames",
-        "http://rdf.freebase.com/ns/"                       => "fb",
-        "http://purl.org/dc/dcmitype/"                      => "dcmit",
-        "http://purl.org/science/owl/sciencecommons/"       => "sc",
-        "http://www.w3.org/ns/md#"                          => "md",
-        "http://purl.org/prog/"                             => "prog",
-        "http://creativecommons.org/ns#"                    => "cc",
-
-
-        "http://purl.org/ontology/mo/"                      => "mo",
-        "http://purl.org/ontology/mbz#"                     => "mbz",
-        "http://purl.org/vocab/bio/0.1/"                    => "bio",
-        "http://www.holygoat.co.uk/owl/redwood/0.1/tags/"   => "tags",
-        "http://www.lingvoj.org/ontology#"                  => "lingvoj",
-        "http://purl.org/vocab/relationship/"               => "rel",
-        "http://dbtune.org/musicbrainz/resource/vocab/"     => "vocab",
-        "http://dbtune.org/musicbrainz/resource/"           => "dbtunes",
-    );
-
+function prefixed($uri){
     $base = "";
 
     $parsed = parse_url($uri);
@@ -202,6 +215,12 @@ function prefixed($uri)
 
     $rest = substr($uri, 0, -strlen($base));
     return $prefixDB[$rest] . ":" . $base;
+}
+
+function deprefix($predicate){
+    $arr = explode(":", $predicate);
+    $keys = array_search($arr[0], $prefixDB);
+    return $keys[0].$arr[1];
 }
 
 /**
