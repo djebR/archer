@@ -71,28 +71,27 @@
             <div class="sidebar col-sm-3 hidden-xs">
                 <h1>Archer</h1>
                 <p><a href='query.php'>&lt; Back to queries</a></p>
-                <div class="form-group row">
-                    <label for="objSymMethod" class="col-sm-2 col-form-label">Object Similarity</label>
-                    <div class="col-sm-10">
-                        <select id='objSymMethod' class="form-control form-control-sm">
+
+                <p>Step 2: Analyse focus graphs</p>
+                <div class="card mb-5 text-dark pr-2">
+                    <div class="card-body">
+                        <h5 class="card-title">Individual Analysis Settings <span class="badge badge-info" data-toggle="tooltip" data-placement="right" title="Used only on-the-go in the individual comparaison between one couple of linked focus graphs. This parameter will be replaced during the global analysis with the one on the its dashboard.">?</span></h5>
+                        <div class="form-group row">
+                        <label for="objSymMethod" class="col-sm-4 col-form-label">Object Similarity</label>
+                        <select id='objSymMethod' class="col-sm-8 form-control form-control-sm">
                             <option value='default'>String equality</option>
                             <option value='jaccard'>Jaccard (chars)</option>
                             <option value='jaccard-word'>Jaccard (Words)</option>
                             <option value='jaro-winkler'>Jaro-Winkler</option>
                         </select>
                     </div>
-                </div>
-                <div class="row p-3">
-                    <div class="col-6">
                         <div class="form-group row">
-                            <label for="localTau">Local Tau:</label>
-                            <input class="form-control" type="text" id="localTau" value="0.5" />
+                            <label class="col-sm-4 col-form-label" for="localTau">Local Tau:</label>
+                            <input class="col-sm-8 form-control form-control-sm" type="number" id="localTau" value="0.5" min="0" max="1" step="0.001" />
                         </div>
                     </div>
                 </div>
 
-
-                <br>
 
                 <?php
                 if (isset($_REQUEST['folder']) && file_exists("results/" . $_REQUEST['folder'] . ".json")) {
@@ -183,6 +182,9 @@
 
         <script>
             var currentAnchor = -1;
+            $(function() {
+                $('[data-toggle="tooltip"]').tooltip()
+            })
 
             $('.linkResult').on('click', function() {
                 var that = $(this);

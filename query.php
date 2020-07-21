@@ -5,18 +5,39 @@ if (isset($_REQUEST['qq'])) {
 
     header('Content-Type: application/json');
     ini_set('max_execution_time', 0); // to get unlimited php script execution time
-
     $cbdAnswer = array();
     $indices = array();
-    $predicates = explode(",",$_REQUEST['linkpreds']);
-    $instanceURL = getInstances("<" . $_REQUEST['class'] . ">", $_REQUEST['main'], array('query' => 'query', 'format' => 'json'), $_REQUEST["limit"], $_REQUEST["similarity"], $predicates);
+    $Resources = array();
+    $Links = array();
+    $realURL = "";
+    $instanceURL = "";
+    
+    if(isset($_REQUEST['listIRI'])){
+        // Parse Custom linklist
+        $text = preg_replace( "/\r|\n/", "", $_REQUEST['customLink']);
+        $textAr = explode(".", $text);
+        $Resources = array();
+        foreach($textAr as $link){
+            $temp = explode(" ", str_replace(array("<", ">"), "", $link));
+            if(count($temp) != 3) continue;
+            $Resources[] = array(array("value" => $temp[0]), array("value" => $temp[2]));
+            $Links[] = $temp;
+        }
+        $instanceURL = md5($text);
+    } else {
+        $predicates = explode(",",$_REQUEST['linkpreds']);
+        $instanceURL = getInstances("<" . $_REQUEST['class'] . ">", $_REQUEST['main'], array('query' => 'query', 'format' => 'json'), $_REQUEST["limit"], $_REQUEST["similarity"], $predicates);
+
+        $instanceArray = json_decode(request($instanceURL), true);
+        $Resources = $instanceArray["results"]["bindings"];
+        $instanceCount = count($Resources);
+
+        $realURL = md5(getInstances("<" . $_REQUEST['class'] . ">", $_REQUEST['main'], array('query' => 'query', 'format' => 'json'), $instanceCount, $_REQUEST["similarity"]));
+    }
 
     // Todo: check for instance count before creating the folder to avoid duplicate result from possible non completely satisfied queries
     // Example: query for 1000 entries while only 100 exists, so one folder should be created for the 100 entities
 
-    $instanceArray = json_decode(request($instanceURL), true);
-    $instanceCount = count($instanceArray["results"]["bindings"]);
-    $realURL = md5(getInstances("<" . $_REQUEST['class'] . ">", $_REQUEST['main'], array('query' => 'query', 'format' => 'json'), $instanceCount, $_REQUEST["similarity"]));
     $folder = "results/" . md5($realURL);
 
     if (!file_exists($folder) && mkdir($folder)) {
@@ -25,7 +46,7 @@ if (isset($_REQUEST['qq'])) {
         $cbdURL = "";
         $fold = fopen($folder . ".json", 'w');
 
-        foreach ($instanceArray["results"]["bindings"] as $key => $value) {
+        foreach ($Resources as $key => $value) {
             $i = 0;
             foreach ($value as $key2 => $value2) {
                 $cbdURL = "";
@@ -132,7 +153,6 @@ if (isset($_REQUEST['qq'])) {
             <div class="sidebar col-sm-3 hidden-xs">
                 <h1>Archer</h1>
                 <p>Step 1: Query for instances</p>
-                </ul>
                 <ul id="list"></ul>
             </div>
             <div class="main col-sm-9 col-sm-offset-3">
@@ -144,7 +164,7 @@ if (isset($_REQUEST['qq'])) {
                         <div class="col-6">
                             <div class="card">
                                 <div class="card-header">
-                                    Query for your linklist
+                                    Crawl your linklist
                                 </div>
                                 <div class="card-body">
                                     <div class="form-group row">
@@ -178,9 +198,13 @@ if (isset($_REQUEST['qq'])) {
                         <div class="col-6">
                             <div class="card">
                                 <div class="card-header">
-                                    Or provide your custom linklist (N3 format)
+                                    Or provide your custom linklist (NT format) <span class="badge badge-info" data-toggle="tooltip" data-placement="right" title="Put your custom linklists in the folder 'linklist' in the root of the application">?</span>
                                     <button id="importN3" type="button" class="btn btn-primary btn-sm float-right">Import</button>
-                                    <input type="text" class="form-control float-right form-control-sm col-3" id="listIRI" name="listIRI" placeholder="IRI for N3 file." value='' />
+                                    <select class="form-control float-right form-control-sm col-3" id="listIRI" name="listIRI" placeholder="IRI for N3 file." >
+                                        <?php
+                                            printFolder("linklist", "option");
+                                        ?>
+                                    </select>
                                 </div>
                                 <div class="card-body">
                                     <textarea id="customLink" name="customLink" class="form-control" aria-label="Custom linklist" rows="9"></textarea>

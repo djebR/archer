@@ -214,12 +214,12 @@ function prefixed($uri){
     }
 
     $rest = substr($uri, 0, -strlen($base));
-    return $prefixDB[$rest] . ":" . $base;
+    return $GLOBALS['prefixDB'][$rest] . ":" . $base;
 }
 
 function deprefix($predicate){
     $arr = explode(":", $predicate);
-    $keys = array_search($arr[0], $prefixDB);
+    $keys = array_search($arr[0], $GLOBALS['prefixDB']);
     return $keys[0].$arr[1];
 }
 
@@ -312,4 +312,10 @@ function typeMatch($objMeta1, $objMeta2)
     return $result;
 }
 
+function printFolder($folder, $tag){
+    $fileList = glob($folder . "/*.nt");
+    foreach ($fileList as $linkList) {
+        echo "<{$tag} value='{$linkList}'>".basename($linkList)."</{$tag}>";
+    }
+}
 ?>
