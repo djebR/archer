@@ -349,7 +349,7 @@ if (isset($_REQUEST['qq'])) {
                     data: that.serialize(),
                     dataType: "json",
                     success: function(response) {
-                        $('#analyseAll').attr('href', 'mapper.php?folder=' + response.folder);
+                        $('#analyseAll').attr('href', 'mapper.php?f=' + response.folder);
                         $('#analyseAll').show();
                         $('.spnn').hide();
                     },

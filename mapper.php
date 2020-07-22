@@ -4,7 +4,7 @@
 
 <head>
 
-    <title>Archer: Analyse <?php echo (isset($_REQUEST['folder'])) ? $_REQUEST['folder'] : ""; ?></title>
+    <title>Archer: Analyse <?php echo (isset($_REQUEST['f'])) ? $_REQUEST['f'] : ""; ?></title>
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <style>
@@ -94,21 +94,20 @@
 
 
                 <?php
-                if (isset($_REQUEST['folder']) && file_exists("results/" . $_REQUEST['folder'] . ".json")) {
-                    $folder = "results/" . $_REQUEST['folder'];
-                    $fileCount = floor(count(glob($folder . "/*.json")) / 2);
-                    $indices = json_decode(file_get_contents($folder . ".json"), true);
+                $resultFile = "results/" . $_REQUEST['f'] . ".json";
+                $metaFile   = "results/meta_" . $_REQUEST['f'] . ".json";
+                if (isset($_REQUEST['f']) && file_exists($resultFile)) {
+
+                    $indices    = json_decode(file_get_contents($resultFile), true);
+                    $meta       = json_decode(file_get_contents($metaFile), true);
+
+                    $fileCount  = $meta['realised'];
 
                     echo "<p>Total sets: <span class='badge badge-danger float-right'>" . $fileCount . "</span></p>";
                     echo "<ol>";
                     for ($key = 0; $key < $fileCount; $key++) {
-
-                        // read files into json objects
-                        $s0 = json_decode(file_get_contents($folder . "/0_{$key}.json"));
-                        $s1 = json_decode(file_get_contents($folder . "/1_{$key}.json"));
-
-                        $c0 = count($s0);
-                        $c1 = count($s1);
+                        $c0 = count($indices[$key][0]);
+                        $c1 = count($indices[$key][1]);
                         
                         echo "<li data-key='{$key}'><a class='linkResult' href='#{$key}' data-key='{$key}'>" . urldecode(basename($indices["results"][$key][1])) . "</a><span class='triple1_{$key} badge badge-primary float-right'>{$c1}</span><span class='triple0_{$key} badge badge-warning float-right'>{$c0}</span></li>";
                     }
@@ -193,7 +192,7 @@
 
                 $.ajax({
                     type: "get",
-                    url: "analyze.php?tauO=" + $('#localTau').val() + "&tauAvg=" + $('#avgTau').val() + "&method=" + $('#objSymMethod').val() + "&folder=<?php echo isset($_REQUEST['folder']) ? $_REQUEST['folder'] : ""; ?>&key=" + key,
+                    url: "analyze.php?tauO=" + $('#localTau').val() + "&tauAvg=" + $('#avgTau').val() + "&method=" + $('#objSymMethod').val() + "&folder=<?php echo isset($_REQUEST['f']) ? $_REQUEST['f'] : ""; ?>&key=" + key,
                     success: function(response) {
                         $('.main').html(response);
                     }
@@ -208,7 +207,7 @@
 
                 $.ajax({
                     type: "get",
-                    url: "analyze.php?tauO=" + $('#localTau').val() + "&tauAvg=" + $('#avgTau').val() + "&method=" + $('#objSymMethod').val() + "&folder=<?php echo isset($_REQUEST['folder']) ? $_REQUEST['folder'] : ""; ?>",
+                    url: "analyze.php?tauO=" + $('#localTau').val() + "&tauAvg=" + $('#avgTau').val() + "&method=" + $('#objSymMethod').val() + "&folder=<?php echo isset($_REQUEST['f']) ? $_REQUEST['f'] : ""; ?>",
                     success: function(response) {
                         $('.main').html(response);
                         $('.spnn').hide();
@@ -225,7 +224,7 @@
 
                 $.ajax({
                     type: "get",
-                    url: "assets/loader.php?key=" + $('#key').val() + "&tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethod').val() + "&folder=<?php echo isset($_REQUEST['folder']) ? $_REQUEST['folder'] : ""; ?>",
+                    url: "assets/loader.php?key=" + $('#key').val() + "&tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethod').val() + "&folder=<?php echo isset($_REQUEST['f']) ? $_REQUEST['f'] : ""; ?>",
                     success: function(response) {
                         $('.main').html(response);
                         $('.spnn').hide();
@@ -242,7 +241,7 @@
                 location.hash = "analyse";
                 $.ajax({
                     type: "get",
-                    url: "assets/loader.php?analyse=0&tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethod').val() + "&folder=<?php echo isset($_REQUEST['folder']) ? $_REQUEST['folder'] : ""; ?>",
+                    url: "assets/loader.php?analyse=0&tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethod').val() + "&folder=<?php echo isset($_REQUEST['f']) ? $_REQUEST['f'] : ""; ?>",
                     success: function(response) {
                         $('.main').html(response);
                         $('.spnn').hide();
@@ -259,7 +258,7 @@
                 var context = (location.hash.substr(1) == "analyse") ? "analyse=0&" : ("key=" + $('#key').val() + "&");
                 $.ajax({
                     type: "get",
-                    url: "assets/loader.php?" + context + "tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethod').val() + "&folder=<?php echo isset($_REQUEST['folder']) ? $_REQUEST['folder'] : ""; ?>",
+                    url: "assets/loader.php?" + context + "tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethod').val() + "&folder=<?php echo isset($_REQUEST['f']) ? $_REQUEST['f'] : ""; ?>",
                     success: function(response) {
                         $('.main').html(response);
                         $('.spnn').hide();
