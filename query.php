@@ -5,85 +5,133 @@ if (isset($_REQUEST['qq'])) {
 
     header('Content-Type: application/json');
     ini_set('max_execution_time', 0); // to get unlimited php script execution time
-    $cbdAnswer = array();
-    $indices = array();
-    $Resources = array();
-    $Links = array();
-    $realURL = "";
+
+    $cbdAnswer  = array();
+    $indices    = array();
+    $Resources  = array();
+    $fileHash   = "";
     $instanceURL = "";
-    
+    $meta       = array();
+
+    // Parse a custom linkset or query for one
+    // Metadata for a query
+    // O for queried, 1 for custom
+    // if queried (class, limit, predicates, pattern)
+    // if custom (limit, predicates)
+    // target, reference
+
     if(isset($_REQUEST['listIRI'])){
         // Parse Custom linklist
-        $text = preg_replace( "/\r|\n/", "", $_REQUEST['customLink']);
+        $text = preg_replace( "/\r|\n/", "", trim($_REQUEST['customLink']));
         $textAr = explode(".", $text);
         $Resources = array();
+        $preds = array();
+
         foreach($textAr as $link){
             $temp = explode(" ", str_replace(array("<", ">"), "", $link));
             if(count($temp) != 3) continue;
-            $Resources[] = array(array("value" => $temp[0]), array("value" => $temp[2]));
-            $Links[] = $temp;
+            $Resources[] = $temp;
+            $preds[$temp[1]] = 0; // Get unique predicate list
         }
-        $instanceURL = md5($text);
+
+        // Resources: contains links 
+        $fileHash = md5($text);
+        $instanceCount = count($Resources);
+
+        $meta = array(
+            "target"                => $_REQUEST['main'],
+            "reference"             => $_REQUEST['second'],
+            "limit"                 => $instanceCount,
+            "linking_predicates"    => array_keys($preds),
+            "file"                  => $fileHash
+        );
     } else {
         $predicates = explode(",",$_REQUEST['linkpreds']);
+
         $instanceURL = getInstances("<" . $_REQUEST['class'] . ">", $_REQUEST['main'], array('query' => 'query', 'format' => 'json'), $_REQUEST["limit"], $_REQUEST["similarity"], $predicates);
 
         $instanceArray = json_decode(request($instanceURL), true);
-        $Resources = $instanceArray["results"]["bindings"];
+        foreach ($instanceArray["results"]["bindings"] as $value) {
+            $Resources[] = array($value['source1']['value'], "http://www.w3.org/2002/07/owl#sameAs", $value['source2']['value']);
+        }
+
         $instanceCount = count($Resources);
 
-        $realURL = md5(getInstances("<" . $_REQUEST['class'] . ">", $_REQUEST['main'], array('query' => 'query', 'format' => 'json'), $instanceCount, $_REQUEST["similarity"]));
-    }
+        $fileHash = md5(getInstances("<" . $_REQUEST['class'] . ">", $_REQUEST['main'], array('query' => 'query', 'format' => 'json'), $instanceCount, $_REQUEST["similarity"]));
 
-    // Todo: check for instance count before creating the folder to avoid duplicate result from possible non completely satisfied queries
-    // Example: query for 1000 entries while only 100 exists, so one folder should be created for the 100 entities
-
-    $folder = "results/" . md5($realURL);
-
-    if (!file_exists($folder) && mkdir($folder)) {
-        
-        // Results start
-        $cbdURL = "";
-        $fold = fopen($folder . ".json", 'w');
-
-        foreach ($Resources as $key => $value) {
-            $i = 0;
-            foreach ($value as $key2 => $value2) {
-                $cbdURL = "";
-                $cbdURL = getCBD($value2["value"], ($i == 0) ? $_REQUEST['main'] : $_REQUEST['second'], array('query' => 'query'));
-
-                $cbd = json_decode(request($cbdURL), true);
-                $fp = fopen($folder . "/{$i}_{$key}.json", 'w');
-                if (is_array($cbd) && count($cbd["results"]["bindings"]) > 0) {
-                    foreach ($cbd["results"]["bindings"] as $key3 => $value3) {
-                        $cbdAnswer[$key][$i][] = array("subject" => $value2["value"], "predicate" => $value3["predicate"]["value"], "object" => $value3["object"]["value"], "objectMeta" => array('type' => $value3["object"]["type"], 'datatype' => isset($value3["object"]["datatype"]) ? $value3["object"]["datatype"] : ""));
-                    }
-                    fwrite($fp, json_encode($cbdAnswer[$key][$i]));
-                } else {
-                    fwrite($fp, json_encode(array()));
-                }
-                fclose($fp);
-                $i += 1;
-            }
-
-            $indices[$key] = array($value['source1']['value'], $value['source2']['value']);
-        }
         $meta = array(
             "class"                 => $_REQUEST['class'],
             "target"                => $_REQUEST['main'],
             "reference"             => $_REQUEST['second'],
             "limit"                 => $_REQUEST['limit'],
-            "realised"              => count($indices),
             "linking_predicates"    => $_REQUEST['linkpreds'],
             "pattern"               => $_REQUEST['similarity'],
-            "folder"                => md5($instanceURL)
+            "file"                  => $fileHash
         );
-        fwrite($fold, json_encode(array("meta" => $meta, "results" => $indices)));
-        fclose($fold);
-    } else {
-        die("Error on permission");
     }
-    echo json_encode(array('result' => 1, 'folder' => md5($instanceURL)));
+
+    // Todo: check for instance count before creating the folder to avoid duplicate result from possible non completely satisfied queries
+    // Example: query for 1000 entries while only 100 exists, so one folder should be created for the 100 entities
+
+    $resultFilePath = "results/" . $fileHash . ".json";
+    $metaFilePath   = "results/meta_" . $fileHash . ".json";
+    $counter = 0;
+
+    if (!file_exists($resultFilePath)) {
+        foreach ($Resources as $key => $value) {
+            $TargetCBDURL       = getCBD($value[0], $_REQUEST['main'], array('query' => 'query'));
+            $ReferenceCBDURL    = getCBD($value[2], $_REQUEST['second'], array('query' => 'query'));
+
+            $TargetCBD          = json_decode(request($TargetCBDURL), true);
+            $ReferenceCBD       = json_decode(request($ReferenceCBDURL), true);
+
+            if (    is_array($TargetCBD) 
+                &&  is_array($ReferenceCBD)
+                &&  count($TargetCBD["results"]["bindings"]) > 0
+                &&  count($ReferenceCBD["results"]["bindings"]) > 0
+            ) {
+                foreach ($TargetCBD["results"]["bindings"] as $valueT) {
+                    $cbdAnswer[$counter]['target'][] = array(
+                                                "subject"   => $valueT["subject"]["value"],
+                                                "predicate" => $valueT["predicate"]["value"],
+                                                "object"    => $valueT["object"]["value"],
+                                                "objectMeta" => array(
+                                                                    'type' => $valueT["object"]["type"],
+                                                                    'datatype' => isset($valueT["object"]["datatype"]) ? $valueT["object"]["datatype"] : "")
+                                            );
+                }
+                foreach ($ReferenceCBDURL["results"]["bindings"] as $valueR) {
+                    $cbdAnswer[$counter]['reference'][] = array(
+                                                "subject"   => $valueR["subject"]["value"],
+                                                "predicate" => $valueR["predicate"]["value"],
+                                                "object"    => $valueR["object"]["value"],
+                                                "objectMeta" => array(
+                                                                    'type' => $valueR["object"]["type"],
+                                                                    'datatype' => isset($valueR["object"]["datatype"]) ? $valueR["object"]["datatype"] : "")
+                                            );
+                }
+                $cbdAnswer[$counter]['link'] = $value;
+
+                $counter++;
+            }
+        }
+
+        // Check the number of realised queries (links with non-empty focus graphs on both sides)
+
+        if($counter > 0) {
+            $meta["realised"] = $counter;
+
+            // write results and query metadata in "results/fileHash.json"
+            $resultFile = fopen($resultFilePath, 'w');
+            $metaFile   = fopen($metaFilePath, 'w');
+            fwrite($resultFile, json_encode($cbdAnswer));
+            fwrite($metaFile,   json_encode($meta));
+            fclose($resultFile);
+            fclose($metaFile);
+        }
+    } 
+
+    echo json_encode(array('result' => 1, 'file' => $fileHash));
     die();
 }
 
@@ -177,7 +225,7 @@ if (isset($_REQUEST['qq'])) {
                                     <div class="form-group row">
                                         <label for="limit" class="col-sm-3 col-form-label">Limit <span class="badge badge-info" data-toggle="tooltip" data-placement="right" title="Enter the max number of instances you want to query for identity links">?</span></label>
                                         <div class="col-sm-9">
-                                            <input type="text" class="form-control" id="limit" name="limit" placeholder="Max number of instances" value='<?php echo (!isset($_REQUEST["limit"])) ? "" : $_REQUEST["limit"]; ?>' />
+                                            <input type="number" class="form-control" id="limit" name="limit" min="1" placeholder="Max number of instances" value='<?php echo (!isset($_REQUEST["limit"])) ? "" : $_REQUEST["limit"]; ?>' />
                                         </div>
                                     </div>
                                     <div class="form-group row">
@@ -191,6 +239,9 @@ if (isset($_REQUEST['qq'])) {
                                         <div class="col-sm-9">
                                             <input type="text" class="form-control" id="similarity" name="similarity" placeholder="Link pattern in your target dataset" value='<?php echo (!isset($_REQUEST["similarity"])) ? "" : $_REQUEST["similarity"]; ?>' />
                                         </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <span class="col-sm-12 col-form-label">Your links will be in the form (hover to see details):</span><p class="col-sm-12 col-form-label"> <kbd id="sub" data-toggle="tooltip" data-placement="bottom" title="Instances of the class above">&lt;TargetResource&gt;</kbd> <kbd id="pred" data-toggle="tooltip" data-placement="bottom" title="predicates">&lt;linkingPredicate&gt;</kbd> <kbd id="obj" data-toggle="tooltip" data-placement="bottom" title="resources with IRI that contains the object pattern">&lt;ReferenceResource&gt;</kbd></p>
                                     </div>
                                 </div>
                             </div>
@@ -254,20 +305,19 @@ if (isset($_REQUEST['qq'])) {
                     <div class="col-12">
                         <h4>Previous queries</h4>
                         <ul><?php
-                            $fileList = glob("results/*.json");
+                            $fileList = glob("results/meta_*.json");
                             $fileCount = count($fileList);
                             if ($fileCount) {
                                 foreach ($fileList as $key => $filePath) {
                                     // read files into json objects
-                                    $s = json_decode(file_get_contents($filePath), true);
-                                    $meta = $s['meta'];
-                                    $linkCount = $meta['realised'];
-                                    $target = parse_url($meta['target']);
-                                    $reference = parse_url($meta['reference']);
-                                    $title = "<kbd>" . prefixed($meta['class']) . "</kbd> in <kbd>" . ($target['host'].$target['path']). "</kbd> based on <kbd>" .  ($reference['host'].$reference['path']) . "</kbd>";
+                                    $meta       = json_decode(file_get_contents($filePath), true);
+                                    $linkCount  = $meta['realised'];
+                                    $target     = parse_url($meta['target']);
+                                    $reference  = parse_url($meta['reference']);
+                                    $title      = "<kbd>" . ((isset($meta['class']))?prefixed($meta['class']):"Custom linkset") . "</kbd> from <kbd>" . ($target['host'].$target['path']). "</kbd> to <kbd>" .  ($reference['host'].$reference['path']) . "</kbd>";
                                     $filename = pathinfo($filePath)['filename'];
 
-                                    echo "<li><a href='mapper.php?folder={$filename}'>" . $title . "</a><span class='badge badge-primary float-right'>{$linkCount}</span></li>";
+                                    echo "<li><a href='mapper.php?folder=".substr($filename, 5)."'>" . $title . "</a><span class='badge badge-primary float-right'>{$linkCount} focus graphs</span></li>";
                                 }
                             } else {
                                 echo "<li>No previous queries to select from.</li>";
