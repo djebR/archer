@@ -20,7 +20,7 @@ if (isset($_REQUEST['qq'])) {
     // if custom (limit, predicates)
     // target, reference
 
-    if(isset($_REQUEST['listIRI'])){
+    if(isset($_REQUEST['customLink']) && trim($_REQUEST['customLink']) != ""){
         // Parse Custom linklist
         $text = preg_replace( "/\r|\n/", "", trim($_REQUEST['customLink']));
         $textAr = explode(".", $text);
@@ -57,7 +57,7 @@ if (isset($_REQUEST['qq'])) {
 
         $instanceCount = count($Resources);
 
-        $fileHash = md5(getInstances("<" . $_REQUEST['class'] . ">", $_REQUEST['main'], array('query' => 'query', 'format' => 'json'), $instanceCount, $_REQUEST["similarity"]));
+        $fileHash = md5(getInstances("<" . $_REQUEST['class'] . ">", $_REQUEST['main'], array('query' => 'query', 'format' => 'json'), $instanceCount, $_REQUEST["similarity"], $predicates));
 
         $meta = array(
             "class"                 => $_REQUEST['class'],
@@ -69,7 +69,6 @@ if (isset($_REQUEST['qq'])) {
             "file"                  => $fileHash
         );
     }
-
     // Todo: check for instance count before creating the folder to avoid duplicate result from possible non completely satisfied queries
     // Example: query for 1000 entries while only 100 exists, so one folder should be created for the 100 entities
 
@@ -100,7 +99,7 @@ if (isset($_REQUEST['qq'])) {
                                                                     'datatype' => isset($valueT["object"]["datatype"]) ? $valueT["object"]["datatype"] : "")
                                             );
                 }
-                foreach ($ReferenceCBDURL["results"]["bindings"] as $valueR) {
+                foreach ($ReferenceCBD["results"]["bindings"] as $valueR) {
                     $cbdAnswer[$counter]['reference'][] = array(
                                                 "subject"   => $valueR["subject"]["value"],
                                                 "predicate" => $valueR["predicate"]["value"],
@@ -273,8 +272,7 @@ if (isset($_REQUEST['qq'])) {
                                 </div>
 
                             </div>
-                        </div>
-                        <div class="col-6">
+
                             <div class="form-group row">
                                 <label for="second" class="col-sm-3 col-form-label">Reference dataset <span class="badge badge-info" data-toggle="tooltip" data-placement="right" title="(IRI) the SPARQL endpoint for your reference dataset (the one you use as a reference)">?</span></label>
                                 <div class="col-sm-9">
@@ -282,23 +280,15 @@ if (isset($_REQUEST['qq'])) {
                                 </div>
                             </div>
                         </div>
+                        <div class="col-6">
+                                <button type="submit" class="btn btn-primary btn-lg btn-block">Query
+                                    <span class="spnn spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display:none;"></span>
+                                    <span class="spnn sr-only" style="display:none;">Loading...</span>
+                                </button>
+                                <button id='analyseAll' data-href="" type="button" class="btn btn-success btn-lg btn-block" style="display:none;">Analyze</button>
+                        </div>
                     </div>
                     <div class="clearfix"></div>
-                    <div class="row mt-3">
-                        <div class="col-sm-2">
-                            <button type="submit" class="btn btn-primary">Query
-                                <span class="spnn spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display:none;"></span>
-                                <span class="spnn sr-only" style="display:none;">Loading...</span>
-                            </button>
-                        </div>
-                        <div class="col-sm-8">
-                            <div class="clearfix"></div>
-                        </div>
-                        <div class="col-sm-2">
-                            <a href="#" id='analyseAll' class="float-right btn btn-success" style="display:none;">Analyze</a>
-                        </div>
-
-                    </div>
                 </form>
 
                 <div class="row mt-3">
@@ -317,7 +307,7 @@ if (isset($_REQUEST['qq'])) {
                                     $title      = "<kbd>" . ((isset($meta['class']))?prefixed($meta['class']):"Custom linkset") . "</kbd> from <kbd>" . ($target['host'].$target['path']). "</kbd> to <kbd>" .  ($reference['host'].$reference['path']) . "</kbd>";
                                     $filename = pathinfo($filePath)['filename'];
 
-                                    echo "<li><a href='mapper.php?folder=".substr($filename, 5)."'>" . $title . "</a><span class='badge badge-primary float-right'>{$linkCount} focus graphs</span></li>";
+                                    echo "<li><a href='mapper.php?f=".substr($filename, 5)."'>" . $title . "</a><span class='badge badge-primary float-right'>{$linkCount} focus graphs</span></li>";
                                 }
                             } else {
                                 echo "<li>No previous queries to select from.</li>";
@@ -349,7 +339,7 @@ if (isset($_REQUEST['qq'])) {
                     data: that.serialize(),
                     dataType: "json",
                     success: function(response) {
-                        $('#analyseAll').attr('href', 'mapper.php?f=' + response.folder);
+                        $('#analyseAll').attr('data-href', 'mapper.php?f=' + response.file);
                         $('#analyseAll').show();
                         $('.spnn').hide();
                     },
@@ -371,6 +361,10 @@ if (isset($_REQUEST['qq'])) {
                         $("#customLink").text(data);
                     }
                 });
+            });
+
+            $("#analyseAll").on('click', function() {
+                window.location = $(this).data('href');
             });
         </script>
 </body>

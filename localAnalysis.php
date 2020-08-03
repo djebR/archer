@@ -9,9 +9,7 @@ ini_set('max_execution_time', '0');
 if (ob_get_level() == 0) ob_start();
 include('assets/function.php');
 
-
-function setProgress($value, $comment)
-{
+function setProgress($value, $comment){
     $_SESSION['progress'] = array('percent' => $value, 'comment' => $comment);
 }
 
@@ -31,27 +29,22 @@ $semanticWeights = array(
 
 // Thresholds
 $step       = 0.25;
+
 // General configuration
 $objectSymMethod = (isset($_REQUEST['method'])) ? $_REQUEST['method'] : "default";
 
-if (!file_exists("results/links/" . $_REQUEST['folder'] . "/" . $_REQUEST['method'])) {
-    if (!mkdir("results/links/" . $_REQUEST['folder']) && !mkdir("results/links/" . $_REQUEST['folder'] . "/" . $_REQUEST['method'])) {
+if (!file_exists("results/" . $_REQUEST['f'] . "/" . $_REQUEST['method'])) {
+    if (!mkdir("results/" . $_REQUEST['f'] . "/" . $_REQUEST['method'], 0777, true)) {
         die('Cannot create folder for results');
     }
 }
 
 // ------------------- Coding: Iterate over all sets --------------------------
 
-// ********************************************
-//
-//           Complete analysis
-//
-// ********************************************
-
 //echo "Start analysis:<br>";
-$folder     = $_REQUEST['folder'];
 
-$fileCount = floor(count(glob("results/" . $folder . "/*.json")) / 2);
+$focusGraphs = json_decode(file_get_contents("results/".$_REQUEST['f'].".json"), true);
+$fileCount = count($focusGraphs);
 
 $LinkedPred         = array();
 $counts             = array();
@@ -59,8 +52,8 @@ $counts             = array();
 for ($key = 0; $key < $fileCount; $key++) {
 
     // read files into json objects
-    $s0 = json_decode(file_get_contents("results/" . $folder . "/0_{$key}.json"));
-    $s1 = json_decode(file_get_contents("results/" . $folder . "/1_{$key}.json"));
+    $s0 = $focusGraphs[$key]['target'];
+    $s1 = $focusGraphs[$key]['reference'];
 
     // Triple count in each representative set
     $counts['tripleCount'][0][$key] = count($s0);
@@ -70,30 +63,30 @@ for ($key = 0; $key < $fileCount; $key++) {
 
     // Check for links, push links into $LinkedPred
     foreach ($s0 as $triple0) {
-        $p0 = prefixed($triple0->predicate);
+        $p0 = prefixed($triple0['predicate']);
         // Count distinct predicates for Reference set (for I2 later)
         isset($counts[0][$p0][$key]) ? $counts[0][$p0][$key]++ : ($counts[0][$p0][$key] = 1);
   
         foreach ($s1 as $triple1) {
-            $p1 = prefixed($triple1->predicate);
+            $p1 = prefixed($triple1['predicate']);
 
-            $v = valMatch($triple0->object, $triple1->object, $objectSymMethod);
-            $t = typeMatch($triple0->objectMeta, $triple1->objectMeta);
+            $v = valMatch($triple0['object'], $triple1['object'], $objectSymMethod);
+            $t = typeMatch($triple0['objectMeta'], $triple1['objectMeta']);
             if($v && $t) $LinkedPred[$key][] = array($p0, $p1, $t, $v);
         }
     }
 
     // analyse ref -> focus links
     foreach ($s1 as $triple1) {
-        $p1 = prefixed($triple1->predicate);
+        $p1 = prefixed($triple1['predicate']);
         // Count distinct predicates for Reference set (for I2 later)
         isset($counts[1][$p1][$key]) ? $counts[1][$p1][$key]++ : ($counts[1][$p1][$key] = 1);
     }
 
 }
-$p = fopen("results/links/" . $_REQUEST['folder'] . "/" . $_REQUEST['method'] . "/feat.json", "w");
-$h = fopen("results/links/" . $_REQUEST['folder'] . "/" . $_REQUEST['method'] . "/heat.json", "w");
-$c = fopen("results/links/" . $_REQUEST['folder'] . "/" . $_REQUEST['method'] . "/predBox.json", "w");
+$p = fopen("results/" . $_REQUEST['f'] . "/" . $_REQUEST['method'] . "/feat.json", "w");
+$h = fopen("results/" . $_REQUEST['f'] . "/" . $_REQUEST['method'] . "/heat.json", "w");
+$c = fopen("results/" . $_REQUEST['f'] . "/" . $_REQUEST['method'] . "/predBox.json", "w");
 $feat = array();
 $heater = array();
 $predBox = array();
@@ -247,7 +240,7 @@ for ($w_val = 0; $w_val <= 1; $w_val += 0.25) {
                 $feat["{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}"] = array("totalLinks" => $sublinkCumulativeCount[$cbdID], "CoupleNumber" => $couples, "couples");
                 $heater["{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}"] = array("data" => $heat, "foc" => $focLocal, "ref" => $refLocal);
                 // Dump heatmaps as strings (for easy loading with js)
-                //$h = fopen("results/links/" . $_REQUEST['folder'] . "/" . $_REQUEST['method'] . "/heat_{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}.json", "w");
+                //$h = fopen("results/links/" . $_REQUEST['f'] . "/" . $_REQUEST['method'] . "/heat_{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}.json", "w");
                 //fwrite($h, json_encode(array("data" => $heat, "foc" => $focLocal, "ref" => $refLocal)));
                 //fclose($h);
 

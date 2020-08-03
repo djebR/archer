@@ -77,15 +77,7 @@ $prefixDB = array(
 function getInstances($class, $source, $parameters, $limit = 500, $sourceSimilarity = null, $predicates){
 
     $query =
-        "SELECT distinct ?source1  " . (!is_null($sourceSimilarity) ? ("?source2") : "") . "
-                    WHERE {
-                        ?source1 a " . $class . " .
-                        " . (!is_null($sourceSimilarity) ? ("
-                        ?source1 <http://www.w3.org/2002/07/owl#sameAs> ?source2 .
-                        FILTER (CONTAINS(STR(?source2),'" . $sourceSimilarity . "'))
-                        ") : "") . "
-                    }
-                    LIMIT " . $limit;
+        "SELECT distinct ?source1  " . (!is_null($sourceSimilarity) ? ("?source2") : "") . " WHERE { ?source1 a " . $class . " . " . (!is_null($sourceSimilarity) ? (" ?source1 <http://www.w3.org/2002/07/owl#sameAs> ?source2 . FILTER (CONTAINS(STR(?source2),'" . $sourceSimilarity . "')) ") : "") . " } LIMIT " . $limit;
 
     $searchUrl = $source . "?" . $parameters['query'] . '=' . urlencode($query);
     if (isset($parameters['format'])) $searchUrl .= '&format=' . $parameters['format'];
@@ -267,14 +259,14 @@ function valMatch($s1, $s2, $type = 'default', $point = 4)
         case 'jaccard':
             $ss1 = str_split($s1);
             $ss2 = str_split($s2);
-            $arr_intersection   = array_intersect($ss1, $ss2);
+            $arr_intersection   = array_unique(array_intersect($ss1, $ss2));
             $arr_union          = array_unique(array_merge($ss1, $ss2));
             $sim                = count($arr_intersection) / count($arr_union);
             break;
         case 'jaccard-word':
             $ss1 = explode(" ", $s1);
             $ss2 = explode(" ", $s2);
-            $arr_intersection   = array_intersect($ss1, $ss2);
+            $arr_intersection   = array_unique(array_intersect($ss1, $ss2));
             $arr_union          = array_unique(array_merge($ss1, $ss2));
             $sim                = count($arr_intersection) / count($arr_union);
             break;
@@ -304,9 +296,9 @@ function valMatch($s1, $s2, $type = 'default', $point = 4)
 function typeMatch($objMeta1, $objMeta2)
 {
     $result = 0;
-    $a = ($objMeta1->type == "uri");
-    $b = ($objMeta2->type == "uri");
-    $c = (isset($objMeta1->datatype) && isset($objMeta2->datatype)) ? ($objMeta1->datatype == $objMeta2->datatype) : false;
+    $a = ($objMeta1['type'] == "uri");
+    $b = ($objMeta2['type'] == "uri");
+    $c = (isset($objMeta1['datatype']) && isset($objMeta2['datatype'])) ? ($objMeta1['datatype'] == $objMeta2['datatype']) : false;
 
     if (($a && $b) || (!$a && !$b && $c)) $result = 1;
     return $result;

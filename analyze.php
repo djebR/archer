@@ -46,7 +46,8 @@
 
 
 
-    if(isset($_REQUEST['key']) && file_exists("results/".$_REQUEST['folder']."/0_".$_REQUEST['key'].".json") && file_exists("results/".$_REQUEST['folder']."/1_".$_REQUEST['key'].".json")){
+    if(isset($_REQUEST['key'])
+        && file_exists("results/".$_REQUEST['f'].".json")){
         
         // ------------------- Coding: One couple of rep-sets --------------------------
 
@@ -56,8 +57,9 @@
 
         $key = $_REQUEST['key'];
         // read files into json objects
-        $s0 = json_decode(file_get_contents("results/".$_REQUEST['folder']."/0_{$key}.json"));
-        $s1 = json_decode(file_get_contents("results/".$_REQUEST['folder']."/1_{$key}.json"));
+        $focusGraphs = json_decode(file_get_contents("results/".$_REQUEST['f'].".json"), true);
+        $s0 = $focusGraphs[$key]['target'];
+        $s1 = $focusGraphs[$key]['reference'];
 
         //setProgress(2, "Analysing representative sets ...");
 
@@ -71,16 +73,16 @@
 
         // analyse from -> to links
         foreach ($s0 as $triple0) {
-            if(isset($perdCount[0][prefixed($triple0->predicate)])) $perdCount[0][prefixed($triple0->predicate)]++;
-            else $perdCount[0][prefixed($triple0->predicate)] = 1;
+            if(isset($perdCount[0][prefixed($triple0['predicate'])])) $perdCount[0][prefixed($triple0['predicate'])]++;
+            else $perdCount[0][prefixed($triple0['predicate'])] = 1;
 
             $boo = false;
             foreach ($s1 as $triple1) {
-                $symo = $Weights['w_type'] * typeMatch($triple0->objectMeta, $triple1->objectMeta) + $Weights['w_val'] * valMatch($triple0->object, $triple1->object, $objectSymMethod);
+                $symo = $Weights['w_type'] * typeMatch($triple0['objectMeta'], $triple1['objectMeta']) + $Weights['w_val'] * valMatch($triple0['object'], $triple1['object'], $objectSymMethod);
                 if($symo > $tau_o){
                     $linkCount += 1;
                     $boo = true;
-                    $possibleLinks[] = array($triple0->predicate, $triple1->predicate, $symo);
+                    $possibleLinks[] = array($triple0['predicate'], $triple1['predicate'], $symo);
                 }
             }
             if($boo) $linked0 += 1;
@@ -88,12 +90,12 @@
 
         // analyse from <- to links
         foreach ($s1 as $triple1) {
-            if(isset($perdCount[1][prefixed($triple1->predicate)])) $perdCount[1][prefixed($triple1->predicate)]++;
-            else $perdCount[1][prefixed($triple1->predicate)] = 1;
+            if(isset($perdCount[1][prefixed($triple1['predicate'])])) $perdCount[1][prefixed($triple1['predicate'])]++;
+            else $perdCount[1][prefixed($triple1['predicate'])] = 1;
             
             $boo = false;
             foreach ($s0 as $triple0) {
-                $symo = $Weights['w_type'] * typeMatch($triple0->objectMeta, $triple1->objectMeta) + $Weights['w_val'] * valMatch($triple0->object, $triple1->object, $objectSymMethod);
+                $symo = $Weights['w_type'] * typeMatch($triple0['objectMeta'], $triple1['objectMeta']) + $Weights['w_val'] * valMatch($triple0['object'], $triple1['object'], $objectSymMethod);
                 if($symo > $tau_o){
                     $boo = true;
                     break;
@@ -342,14 +344,14 @@
 
             // analyse focus -> ref links
             foreach ($s0 as $triple0) {
-                $p0 = prefixed($triple0->predicate);
+                $p0 = prefixed($triple0['predicate']);
                 // Count distinct predicates for Focus set (for I2 later)
                 isset($counts[0][$p0][$key]) ? $counts[0][$p0][$key]++ : ($counts[0][$p0][$key] = 1);
 
                 // Check for links, push links into $LinkedPred, add one triple to the count
                 $boo = false;
                 foreach ($s1 as $triple1) {
-                    $symo = $Weights['w_type'] * typeMatch($triple0->objectMeta, $triple1->objectMeta) + $Weights['w_val'] * valMatch($triple0->object, $triple1->object, $objectSymMethod);
+                    $symo = $Weights['w_type'] * typeMatch($triple0['objectMeta'], $triple1['objectMeta']) + $Weights['w_val'] * valMatch($triple0['object'], $triple1['object'], $objectSymMethod);
                     if($symo >= $tau_o){
                         $boo = true;
                         $LinkedPred[$key][] = array($triple0, $triple1, $symo);
@@ -360,14 +362,14 @@
             
             // analyse ref -> focus links
             foreach ($s1 as $triple1) {
-                $p1 = prefixed($triple1->predicate);
+                $p1 = prefixed($triple1['predicate']);
                 // Count distinct predicates for Reference set (for I2 later)
                 isset($counts[1][$p1][$key]) ? $counts[1][$p1][$key]++ : ($counts[1][$p1][$key] = 1);
                 
                 // Check for links, add one triple to the count
                 $boo = false;
                 foreach ($s0 as $triple0) {
-                    $symo = $Weights['w_type'] * typeMatch($triple0->objectMeta, $triple1->objectMeta) + $Weights['w_val'] * valMatch($triple0->object, $triple1->object, $objectSymMethod);
+                    $symo = $Weights['w_type'] * typeMatch($triple0['objectMeta'], $triple1['objectMeta']) + $Weights['w_val'] * valMatch($triple0['object'], $triple1['object'], $objectSymMethod);
                     if($symo > $tau_o){
                         $boo = true;
                         break;
@@ -396,8 +398,8 @@
         // Get the count for each and every couple of predicates
         foreach($LinkedPred as $cbdID => $sublinks){
             foreach ($sublinks as $sublink) {
-                $p0 = prefixed($sublink[0]->predicate);
-                $p1 = prefixed($sublink[1]->predicate);
+                $p0 = prefixed($sublink[0]['predicate']);
+                $p1 = prefixed($sublink[1]['predicate']);
                 $score = $sublink[2];
                 isset($focusPredicates[$p0][$p1][$cbdID])   ? ($focusPredicates[$p0][$p1][$cbdID] += $score)    : ($focusPredicates[$p0][$p1][$cbdID] = $score);
                 isset($refPredicates[$p1][$p0][$cbdID])     ? ($refPredicates[$p1][$p0][$cbdID]++)              : ($refPredicates[$p1][$p0][$cbdID] = 1);

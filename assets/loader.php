@@ -5,14 +5,14 @@ if (!isset($_REQUEST['analyse'])) {
     $tau_o = $_REQUEST['tau_l'];
     $tau_avg = $_REQUEST['tau_g'];
     $w_val = $_REQUEST['w_val'];
-    $folder = $_REQUEST['folder'];
+    $folder = $_REQUEST['f'];
     $method = $_REQUEST['method'];
     $cbdID    = $_REQUEST['key'];
 
-    if (!file_exists("../results/links/{$folder}/{$method}/heat.json")) {
+    if (!file_exists("../results/{$folder}/{$method}/heat.json")) {
         die("No such file for the selected parameters.");
     }
-    $json = json_decode(file_get_contents("../results/links/{$folder}/{$method}/heat.json"), true);
+    $json = json_decode(file_get_contents("../results/{$folder}/{$method}/heat.json"), true);
 
     $heat = $json["{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}"]['data'];
     $focusKeys = json_encode(array_values($json["{$cbdID}_{$tau_o}_{$tau_avg}_{$w_val}"]['foc']));
@@ -217,7 +217,7 @@ if (!isset($_REQUEST['analyse'])) {
 <?php
 } else {
     // Show Parameter effect on indicators
-    $folder = $_REQUEST['folder'];
+    $folder = $_REQUEST['f'];
     $method = $_REQUEST['method'];
     $tau_l  = $_REQUEST['tau_l'];
     $tau_g  = $_REQUEST['tau_g'];
@@ -230,14 +230,15 @@ if (!isset($_REQUEST['analyse'])) {
         'jaro-winkler' => 'jaro-winkler',
         'default' => 'String equality'
     );
+    $meta = json_decode(file_get_contents("../results/meta_{$folder}.json"), true);
 
-    $fileCount = floor(count(glob("../results/" . $folder . "/*.json")) / 2) - 1;
+    $fileCount = $meta['realised'] - 1;
     $linkNumber = array();
     $CoupleNumber = array();
     $dd = array();
     $dd2 = array();
-    $json = json_decode(file_get_contents("../results/links/{$folder}/{$method}/feat.json"), true);
-    $jsonPred = json_decode(file_get_contents("../results/links/{$folder}/{$method}/predBox.json"), true);
+    $json = json_decode(file_get_contents("../results/{$folder}/{$method}/feat.json"), true);
+    $jsonPred = json_decode(file_get_contents("../results/{$folder}/{$method}/predBox.json"), true);
 
     // Prepare data 
 
