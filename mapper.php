@@ -284,7 +284,7 @@
 
                 $.ajax({
                     type: "get",
-                    url: "assets/loader.php?key=" + $('#key').val() + "&tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethod').val() + "&f=<?php echo isset($_REQUEST['f']) ? $_REQUEST['f'] : ""; ?>",
+                    url: "assets/loader.php?key=" + $('#key').val() + "&tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethodC').val() + "&f=<?php echo isset($_REQUEST['f']) ? $_REQUEST['f'] : ""; ?>",
                     success: function(response) {
                         $('.main').html(response);
                         $('.spnn').hide();
@@ -301,7 +301,7 @@
                 location.hash = "analyse";
                 $.ajax({
                     type: "get",
-                    url: "assets/loader.php?analyse=0&tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethod').val() + "&f=<?php echo isset($_REQUEST['f']) ? $_REQUEST['f'] : ""; ?>",
+                    url: "assets/loader.php?analyse=0&tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethodC').val() + "&f=<?php echo isset($_REQUEST['f']) ? $_REQUEST['f'] : ""; ?>",
                     success: function(response) {
                         $('.main').html(response);
                         $('.spnn').hide();
