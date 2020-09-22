@@ -356,7 +356,7 @@ if (!isset($_REQUEST['analyse'])) {
                 title: '$|LS(D_t, D_r)|$'
             },
             yaxis: {
-                title: '$$\\sum{|E(G_{D_t}(e_t), G_{D_r}(e_r))|}$$'
+                title: '$\\sum{|E(G_{D_t}(e_t), G_{D_r}(e_r))|}$'
 
             }
         };

@@ -287,7 +287,6 @@
                 };
         
             Plotly.newPlot('RatioLinkTotal', data_RatioLinkTotal, Lay_RatioLinkTotal, {responsive: true});
-        
         </script>
 
         <div class='card card-body fixedBot'>

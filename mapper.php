@@ -61,6 +61,8 @@
             color:black;
         }
     </style>
+  <script type="text/javascript" async src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_SVG">
+</script>
 
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
@@ -345,9 +347,6 @@
 
             });
         </script>
-
-
-
 
 </body>
 
