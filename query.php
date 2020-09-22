@@ -248,7 +248,7 @@ if (isset($_REQUEST['qq'])) {
                         <div class="col-6">
                             <div class="card">
                                 <div class="card-header">
-                                    Or provide your custom linklist (NT format) <span class="badge badge-info" data-toggle="tooltip" data-placement="right" title="Put your custom linklists in the folder 'linklist' in the root of the application">?</span>
+                                    Or provide your custom linklist (NT format) <span class="badge badge-info" data-toggle="tooltip" data-placement="right" title="Put your custom linklists in the folder 'linklist' in the root of the application and import it by selecting it and clicking 'import'">?</span>
                                     <button id="importN3" type="button" class="btn btn-primary btn-sm float-right">Import</button>
                                     <select class="form-control float-right form-control-sm col-3" id="listIRI" name="listIRI" placeholder="IRI for N3 file." >
                                         <?php
@@ -307,7 +307,7 @@ if (isset($_REQUEST['qq'])) {
                                     $title      = "<kbd>" . ((isset($meta['class']))?prefixed($meta['class']):"Custom linkset") . "</kbd> from <kbd>" . ($target['host'].$target['path']). "</kbd> to <kbd>" .  ($reference['host'].$reference['path']) . "</kbd>";
                                     $filename = pathinfo($filePath)['filename'];
 
-                                    echo "<li><a href='mapper.php?f=".substr($filename, 5)."'>" . $title . "</a><span class='badge badge-primary float-right'>{$linkCount} focus graphs</span></li>";
+                                    echo "<li><a href='mapper.php?f=".substr($filename, 5)."'>" . $title . "</a><span class='badge badge-primary float-right'>{$linkCount} focus graph pairs</span></li>";
                                 }
                             } else {
                                 echo "<li>No previous queries to select from.</li>";

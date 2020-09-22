@@ -138,8 +138,8 @@
         <div class='row'>
             <div class='col-6' style="padding:1.5rem; border:solid #f7f7f9 0.2rem;">
                 <h2>Indicators</h2>
-                <p>Number of sublinks<span class='float-right'>I<sub>1</sub>: <?php echo $data['linkCount'];?></span></p>
-                <p>Distinct Predicate-couples in sublinks<span class='float-right'>I<sub>4</sub>: <?php echo $data['distinctLinkCount'];?></span></p>
+                <p>Number of evidence links<span class='float-right'>I<sub>1</sub>: <?php echo $data['linkCount'];?></span></p>
+                <p>Distinct Predicate-couples in evidence links<span class='float-right'>I<sub>2</sub>: <?php echo $data['distinctLinkCount'];?></span></p>
             </div>
             <div class='col-6'>
                 <div id='avgSymScores'></div>
@@ -293,7 +293,7 @@
         <div class='card card-body fixedBot'>
             <a data-toggle='collapse' href='#collapseDiv' role='button' aria-expanded='false' aria-controls='collapseDiv'>Debug information</a>
             <div class='collapse' id='collapseDiv'>
-                <?php var_dump(json_encode($data, JSON_PRETTY_PRINT)); ?>
+                <pre><?php print_r($data); ?></pre>
             </div>
         </div>
        <?php  
@@ -940,7 +940,7 @@
         <div class='card card-body fixedBot'>
             <a data-toggle='collapse' href='#collapseDiv' role='button' aria-expanded='false' aria-controls='collapseDiv'>Debug information</a>
             <div class='collapse' id='collapseDiv'>
-                <?php var_dump(json_encode($data, JSON_PRETTY_PRINT)); ?>
+                <?php print(json_encode($data, JSON_PRETTY_PRINT)); ?>
             </div>
         </div>
 <?php

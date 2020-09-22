@@ -135,7 +135,7 @@
 
                     <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordion">
                         <div class="card-body">
-                            <div class="input-group mb-3">
+                            <div class="input-group mb-3 complete">
                                 <div class="input-group-prepend">
                                     <label class="input-group-text text-light bg-dark" for="objSymMethodC">Method</label>
                                 </div>
@@ -146,75 +146,66 @@
                                     <option value='jaro-winkler'>Jaro-Winkler</option>
                                 </select>
                             </div>
-                            <?php
-                                if(file_exists("results/" . $_REQUEST['f'] . "/default/feat.json")){
-                                    // Analysis already done for the default method
-                                    // Show parameters sliders
-                            ?>
-                <div class="btn-group d-flex mb-3" role="group" aria-label="Basic example">
-                    <button class='loadResult btn btn-secondary'>load Results <span class="spnn spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display:none;"></span>
-                        <span class="spnn sr-only" style="display:none;">Loading...</span>
-                    </button>
-                    <button class='loadAnalysis btn btn-info'>load Analysis <span class="spnn spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display:none;"></span>
-                        <span class="spnn sr-only" style="display:none;">Loading...</span>
-                    </button>
-                </div>
-                <div class="input-group mb-3">
-                <div class="input-group-prepend">
-                    <label class="input-group-text" for="tau_l">Local threshold</label>
-                </div>
-                <select class="custom-select up" id="tau_l">
-                    <option value='0'>0</option>
-                    <option value='0.25'>0.25</option>
-                    <option value='0.5'>0.5</option>
-                    <option value='0.75'>0.75</option>
-                </select>
-                </div>
-                <div class="input-group mb-3">
-                <div class="input-group-prepend">
-                    <label class="input-group-text" for="tau_g">Global threshold</label>
-                </div>
-                <select class="custom-select up" id="tau_g">
-                    <option value='0'>0</option>
-                    <option value='0.25'>0.25</option>
-                    <option value='0.5'>0.5</option>
-                    <option value='0.75'>0.75</option>
-                </select>
-                </div>
-                <div class="input-group mb-3">
-                <div class="input-group-prepend">
-                    <label class="input-group-text" for="w_val">Weight for value</label>
-                </div>
-                <select class="custom-select up" id="w_val">
-                    <option value='0'>0</option>
-                    <option value='0.25'>0.25</option>
-                    <option value='0.5'>0.5</option>
-                    <option value='0.75'>0.75</option>
-                    <option value='1'>1</option>
-                </select>
-                </div>
-                <div class="input-group mb-3">
-                <div class="input-group-prepend">
-                    <label class="input-group-text" for="key">N° of Links</label>
-                </div>
-                <select class="custom-select up" id="key">
-                    <?php
-                    for ($i = 0; $i < $fileCount; $i++) {
-                        echo "<option value='{$i}'>" . ($i + 1) . "</option>";
-                    }
-                    ?>
-                </select>
-                </div>
+                            <div class="parameters" style="<?php echo (!file_exists("results/" . $_REQUEST['f'] . "/default/feat.json"))?"display:none;":"";?>">
+                                <div class="btn-group d-flex mb-3" role="group" aria-label="Basic example">
+                                    <button class='loadResult btn btn-secondary'>load Results <span class="spnn spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display:none;"></span>
+                                        <span class="spnn sr-only" style="display:none;">Loading...</span>
+                                    </button>
+                                    <button class='loadAnalysis btn btn-info'>load Analysis <span class="spnn spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display:none;"></span>
+                                        <span class="spnn sr-only" style="display:none;">Loading...</span>
+                                    </button>
+                                </div>
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <label class="input-group-text" for="tau_l">Local threshold</label>
+                                    </div>
+                                    <select class="custom-select up" id="tau_l">
+                                        <option value='0'>0</option>
+                                        <option value='0.25'>0.25</option>
+                                        <option value='0.5'>0.5</option>
+                                        <option value='0.75'>0.75</option>
+                                    </select>
+                                </div>
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <label class="input-group-text" for="tau_g">Global threshold</label>
+                                    </div>
+                                    <select class="custom-select up" id="tau_g">
+                                        <option value='0'>0</option>
+                                        <option value='0.25'>0.25</option>
+                                        <option value='0.5'>0.5</option>
+                                        <option value='0.75'>0.75</option>
+                                    </select>
+                                </div>
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <label class="input-group-text" for="w_val">Weight for value</label>
+                                    </div>
+                                    <select class="custom-select up" id="w_val">
+                                        <option value='0'>0</option>
+                                        <option value='0.25'>0.25</option>
+                                        <option value='0.5'>0.5</option>
+                                        <option value='0.75'>0.75</option>
+                                        <option value='1'>1</option>
+                                    </select>
+                                </div>
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <label class="input-group-text" for="key">N° of Links</label>
+                                    </div>
+                                    <select class="custom-select up" id="key">
+                                        <?php
+                                        for ($i = 0; $i < $fileCount; $i++) {
+                                            echo "<option value='{$i}'>" . ($i + 1) . "</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                            </div>
+                            
 
-                            <?php
-                                } else {
-                            ?>
+                            <button class='localAnalysis btn btn-primary' style="width:100%;<?php echo (file_exists("results/" . $_REQUEST['f'] . "/default/feat.json"))?"display:none;":"";?>" data-toggle="modal" data-target="#localAnalysis">Perform Complete Analysis</button>
 
-                            <button class='localAnalysis btn btn-primary' style="width:100%;" data-toggle="modal" data-target="#localAnalysis">Perform Complete Analysis</button>
-
-                            <?php
-                                }
-                            ?>
                         </div>
                     </div>
                 </div>
@@ -331,6 +322,24 @@
                     success: function(response) {
                         $('.main').html(response);
                         $('.spnn').hide();
+                    }
+                });
+
+            });
+
+            $('#objSymMethodC').on('change', function() {
+                var that = $(this);
+
+                $.ajax({
+                    type: "HEAD",
+                    url: "results/<?php echo $_REQUEST['f'];?>/" + that.val() + "/feat.json",
+                    success: function(response) {
+                        $('.localAnalysis').hide()
+                        $('.parameters').show()
+                    } ,
+                    error: function(response){
+                        $('.localAnalysis').show()
+                        $('.parameters').hide()
                     }
                 });
 

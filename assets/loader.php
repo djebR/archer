@@ -280,6 +280,7 @@ if (!isset($_REQUEST['analyse'])) {
 
     // Print results
 ?>
+
     <div class='row p-3'>
         <div class='col-6'>
             <div id='cbdEffectLN'></div>
