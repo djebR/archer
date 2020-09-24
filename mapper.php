@@ -193,7 +193,7 @@
                                 </div>
                                 <div class="input-group mb-3">
                                     <div class="input-group-prepend">
-                                        <label class="input-group-text" for="key">N° of Links</label>
+                                        <label class="input-group-text" for="key">N° of Sim. Links</label>
                                     </div>
                                     <select class="custom-select up" id="key">
                                         <?php
@@ -237,6 +237,7 @@
             <div class="main"></div>
         </div>
     </div>
+    <button class='btn btn-lg btn-success' style="position: fixed; bottom: 20px; right: 20px;">Annotate Data</button>
 
 
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js" crossorigin="anonymous"></script>
@@ -271,6 +272,8 @@
                     url: "localAnalysis.php?method=" + $('#objSymMethodC').val() + "&f=<?php echo isset($_REQUEST['f']) ? $_REQUEST['f'] : ""; ?>",
                     success: function(response) {
                         $('.modal-body').html(response)
+                        $('.localAnalysis').hide()
+                        $('.parameters').show()
                     },
                     error: function(response){
                         $('.modal-body').html('<p>Analysis already done for this method and this set of focus graphs.</p><p>You may already explore it and visualize it using "Load Results" and "Load Analysis" buttons above.</p>')
