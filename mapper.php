@@ -159,7 +159,7 @@
                                 </div>
                                 <div class="input-group mb-3">
                                     <div class="input-group-prepend">
-                                        <label class="input-group-text" for="tau_l">Local threshold</label>
+                                        <label class="input-group-text" for="tau_l">Obj. threshold</label>
                                     </div>
                                     <select class="custom-select up" id="tau_l">
                                         <option value='0'>0</option>
@@ -170,7 +170,7 @@
                                 </div>
                                 <div class="input-group mb-3">
                                     <div class="input-group-prepend">
-                                        <label class="input-group-text" for="tau_g">Global threshold</label>
+                                        <label class="input-group-text" for="tau_g">R1. threshold</label>
                                     </div>
                                     <select class="custom-select up" id="tau_g">
                                         <option value='0'>0</option>
@@ -237,7 +237,7 @@
             <div class="main"></div>
         </div>
     </div>
-    <button class='btn btn-lg btn-success' style="position: fixed; bottom: 20px; right: 20px;">Annotate Data</button>
+    <button class='btn btn-lg btn-success' style="position: fixed; bottom: 20px; right: 20px;">Step 3: Annotate Data</button>
 
 
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js" crossorigin="anonymous"></script>

@@ -25,8 +25,7 @@ if (!isset($_REQUEST['analyse'])) {
         </div>
         <div class='col-8'>
             <div class='card card-body fixedBot'>
-                <p>The uncertainty of each focus graph \(PSI_r(G_f)\) is calculated by: averaging the sum of products (object similarity X predicate similarity) for each evidence link. </p>
-                <p>The uncertainty of each context is calculated by: averaging the sum of products (object similarity X predicate similarity) for each evidence link. </p>
+                <p>The uncertainty of each target focus graph is calculated by: averaging the sum of products (object similarity X predicate similarity) for each evidence link. </p>
                 <div class="form-group">
                     <label for="sym_p_range">Predicate similarity threshold : <span id="sym_p_val"></span></label>
                     <input type="range" class="form-control-range" id="sym_p_range" min="0" max="1" step="0.001">
@@ -39,10 +38,10 @@ if (!isset($_REQUEST['analyse'])) {
         <a data-toggle='collapse' href='#collapseScore' role='button' aria-expanded='false' aria-controls='collapseScore'>Detailed Scores</a>
         <div class='collapse row' id='collapseScore'>
             <div class='col-6'>
-                <div id='MU1_L'></div>
+                <div id='sameURI'></div>
             </div>
             <div class='col-6'>
-                <div id='sameURI'></div>
+                <div id='MU1_L'></div>
             </div>
             <div class="w-100"></div>
             <div class='col-6'>
@@ -67,12 +66,12 @@ if (!isset($_REQUEST['analyse'])) {
             zmin: 0,
             zmax: 1,
             colorscale: [
-                [0, '#ee5253'],
+                [0, '#ffffff'],
                 [1, '#10ac84']
             ]
         }];
         var Lay_sameURI = {
-            title: 'sameURI <br><span style="font-size:10px;">Sum(AvgSimPerPredCoupleCBD)/Sum(NumberofLinks)</span>',
+            title: 'R_0 <br><span style="font-size:10px;">P_1 == P_2</span>',
             margin: {
                 l: 150,
                 b: 50
@@ -91,15 +90,15 @@ if (!isset($_REQUEST['analyse'])) {
             xgap: 3,
             ygap: 3,
             zauto: false,
-            zmin: <?php echo $tau_avg; ?>,
+            zmin: 0,
             zmax: 1,
             colorscale: [
-                [0, '#ee5253'],
+                [0, '#ffffff'],
                 [1, '#10ac84']
             ]
         }];
         var Lay_MU1_L = {
-            title: 'MU1_L <br><span style="font-size:10px;">Sum(localAvgSimPerPred/localSublink)/TotalNumCBDs</span>',
+            title: 'R_1 <br><span style="font-size:10px;">Sum(localAvgSimPerPred/localSublink)/TotalNumCBDs</span>',
             margin: {
                 l: 150,
                 b: 50
@@ -117,14 +116,17 @@ if (!isset($_REQUEST['analyse'])) {
             hoverongaps: false,
             xgap: 3,
             ygap: 3,
+            zauto: false,
+            zmin: 0,
+            zmax: 1,
             colorscale: [
-                [0, '#ee5253'],
+                [0, '#ffffff'],
                 [1, '#10ac84']
             ]
 
         }];
         var Lay_MU4_L = {
-            title: 'MU4_L <br><span style="font-size:10px;"></span>',
+            title: 'R_2 <br><span style="font-size:10px;"></span>',
             margin: {
                 l: 150,
                 b: 50
@@ -143,14 +145,17 @@ if (!isset($_REQUEST['analyse'])) {
             hoverongaps: false,
             xgap: 3,
             ygap: 3,
+            zauto: false,
+            zmin: 0,
+            zmax: 1,
             colorscale: [
-                [0, '#ee5253'],
+                [0, '#ffffff'],
                 [1, '#10ac84']
             ]
 
         }];
         var Lay_MU5_L = {
-            title: 'MU5_L <br><span style="font-size:10px;"></span>',
+            title: 'R_3 <br><span style="font-size:10px;"></span>',
             margin: {
                 l: 150,
                 b: 50
