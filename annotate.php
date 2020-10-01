@@ -4,7 +4,7 @@
 
 <head>
 
-    <title>Archer: Analyse <?php echo (isset($_REQUEST['f'])) ? $_REQUEST['f'] : ""; ?></title>
+    <title>Archer: Annotate data from <?php echo (isset($_REQUEST['f'])) ? $_REQUEST['f'] : ""; ?></title>
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <style>
@@ -76,14 +76,14 @@
         <div class="row">
             <div class="sidebar col-sm-3 hidden-xs">
                 <h1>Archer</h1>
-                <p><a href='query.php'>&lt; Back to queries</a></p>
+                <p><a href='mapper.php?f=<?php echo (isset($_REQUEST['f'])) ? $_REQUEST['f'] : ""; ?>'>&lt; Back to analysis</a></p>
 
-                <p>Step 2: Analyse focus graphs</p>
+                <p>Step 3: Annotate data</p>
 
                 <div class="accordion" id="accordion">
                 <div class="card text-dark">
                     <div class="card-header" id="headingOne">
-                        <a href="#" class="btn btn-link btn-lg" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">Individual Analysis <span class="badge badge-info" data-toggle="tooltip" data-placement="right" title="Used only on-the-go in the individual comparaison between one couple of linked focus graphs. This parameter will be replaced during the global analysis with the one on the its dashboard.">?</span></a>
+                        <a href="#" class="btn btn-link btn-lg" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">Parameters<span class="badge badge-info" data-toggle="tooltip" data-placement="right" title="Used only on-the-go in the individual comparaison between one couple of linked focus graphs. This parameter will be replaced during the global analysis with the one on the its dashboard.">?</span></a>
                     </div>
 
                     <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordion">
@@ -102,31 +102,6 @@
                                 <label class="col-sm-4 col-form-label" for="localTau">Local Obj-Tau</label>
                                 <input class="col-sm-8 form-control form-control-sm" type="number" id="localTau" value="0.5" min="0" max="1" step="0.001" />
                             </div>
-
-                            <?php
-
-                                if (isset($_REQUEST['f']) && file_exists("results/" . $_REQUEST['f'] . ".json")) {
-                                    $resultFile = "results/" . $_REQUEST['f'] . ".json";
-                                    $metaFile   = "results/meta_" . $_REQUEST['f'] . ".json";
-
-                                    $indices    = json_decode(file_get_contents($resultFile), true);
-                                    $meta       = json_decode(file_get_contents($metaFile), true);
-
-                                    $fileCount  = $meta['realised'];
-
-                                    echo "<p>Total sets: <span class='badge badge-danger float-right'>" . $fileCount . "</span></p>";
-                                    echo "<ol>";
-                                    for ($key = 0; $key < $fileCount; $key++) {
-                                        $c0 = count($indices[$key]['target']);
-                                        $c1 = count($indices[$key]['reference']);
-                                        
-                                        echo "<li data-key='{$key}'><a class='linkResult' href='#{$key}' data-key='{$key}'>" . urldecode(basename($indices[$key]['link'][2])) . "</a><span class='triple1_{$key} badge badge-primary float-right'>{$c1}</span><span class='triple0_{$key} badge badge-warning float-right'>{$c0}</span></li>";
-                                    }
-                                    echo "</ol>";
-                                } else {
-                                    echo "<ul><li>Please select a valid folder in the parameters.</li></ul>";
-                                }
-                                ?>
                         </div>
                     </div>
                 </div>
@@ -237,7 +212,7 @@
             <div class="main"></div>
         </div>
     </div>
-    <button class='btn btn-lg btn-success annotate' style="position: fixed; bottom: 20px; right: 20px;">Step 3: Annotate Data</button>
+    <button class='btn btn-lg btn-success' style="position: fixed; bottom: 20px; right: 20px;">Step 3: Annotate Data</button>
 
 
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js" crossorigin="anonymous"></script>
@@ -262,10 +237,6 @@
                         $('.main').html(response);
                     }
                 });
-            });
-
-            $('.annotate').on('click', function() {
-                window.location = "annotate.php?f=<?php echo isset($_REQUEST['f']) ? $_REQUEST['f'] : ""; ?>";
             });
 
             $('.localAnalysis').on('click', function() {

@@ -352,7 +352,7 @@ if (!isset($_REQUEST['analyse'])) {
         var data_cbdEffectLN = [data_cbd0, data_cbd1, data_cbd2, data_cbd3];
 
         var Lay_cbdEffectLN = {
-            title: 'Number of Total Evidence links/|LS(D_t, D_r)|<br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, tau_{sem} = <?php echo $tau_g; ?>, w_{val} = <?php echo $w_val; ?></span>',
+            title: 'Number of Total Evidence links/|LS(D_t, D_r)|<br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, tau_R1 = <?php echo $tau_g; ?>, w_{val} = <?php echo $w_val; ?></span>',
             margin: {
                 l: 150,
                 b: 50
@@ -407,7 +407,7 @@ if (!isset($_REQUEST['analyse'])) {
         var data_cbdEffectCpN = [data_cpn0, data_cpn1, data_cpn2, data_cpn3];
 
         var Lay_cbdEffectCpN = {
-            title: 'Number of Predicate-Couples/|LS(D_t, D_r)|<br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, tau_{sem} = <?php echo $tau_g; ?>, w_{val} = <?php echo $w_val; ?></span>',
+            title: 'Number of Predicate-Couples/|LS(D_t, D_r)|<br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, tau_R1 = <?php echo $tau_g; ?>, w_{val} = <?php echo $w_val; ?></span>',
             margin: {
                 l: 150,
                 b: 50
@@ -492,7 +492,7 @@ if (!isset($_REQUEST['analyse'])) {
         var data_R1 = <?php echo "[" . implode(",", $dataPred['R1']) . "]"; ?>;
 
         var layout_R1 = {
-            title: 'R1(p1,p2) <br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, |LS(D_t, D_r)| = <?php echo $fileCount; ?>, w_{val} = <?php echo $w_val; ?>, tau_{obj} = <?php echo $tau_l; ?>, tau_{sem} = <?php echo $tau_g; ?>, Pred-Couples = <?php echo $coupleCounter; ?></span>'
+            title: 'R1(p1,p2) <br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, |LS(D_t, D_r)| = <?php echo $fileCount; ?>, w_{val} = <?php echo $w_val; ?>, tau_{obj} = <?php echo $tau_l; ?>, tau_R1 = <?php echo $tau_g; ?>, Pred-Couples = <?php echo $coupleCounter; ?></span>'
         };
 
         Plotly.newPlot('R1', data_R1, layout_R1);
@@ -500,7 +500,7 @@ if (!isset($_REQUEST['analyse'])) {
         var data_R2 = <?php echo "[" . implode(",", $dataPred['R2']) . "]"; ?>;
 
         var layout_R2 = {
-            title: 'R2(p1,p2) <br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, |LS(D_t, D_r)| = <?php echo $fileCount; ?>, w_{val} = <?php echo $w_val; ?>, tau_{obj} = <?php echo $tau_l; ?>, tau_{sem} = <?php echo $tau_g; ?>, Pred-Couples = <?php echo $coupleCounter; ?></span>'
+            title: 'R2(p1,p2) <br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, |LS(D_t, D_r)| = <?php echo $fileCount; ?>, w_{val} = <?php echo $w_val; ?>, tau_{obj} = <?php echo $tau_l; ?>, tau_R1 = <?php echo $tau_g; ?>, Pred-Couples = <?php echo $coupleCounter; ?></span>'
         };
 
         Plotly.newPlot('R2', data_R2, layout_R2);
@@ -508,7 +508,7 @@ if (!isset($_REQUEST['analyse'])) {
         var data_R3 = <?php echo "[" . implode(",", $dataPred['R3']) . "]"; ?>;
 
         var layout_R3 = {
-            title: 'R3(p1,p2) <br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, |LS(D_t, D_r)| = <?php echo $fileCount; ?>, w_{val} = <?php echo $w_val; ?>, tau_{obj} = <?php echo $tau_l; ?>, tau_{sem} = <?php echo $tau_g; ?>, Pred-Couples = <?php echo $coupleCounter; ?></span>'
+            title: 'R3(p1,p2) <br><span style="font-size:10px;">valMatch = <?php echo $methodName[$method]; ?>, |LS(D_t, D_r)| = <?php echo $fileCount; ?>, w_{val} = <?php echo $w_val; ?>, tau_{obj} = <?php echo $tau_l; ?>, tau_R1 = <?php echo $tau_g; ?>, Pred-Couples = <?php echo $coupleCounter; ?></span>'
         };
 
         Plotly.newPlot('R3', data_R3, layout_R3);
