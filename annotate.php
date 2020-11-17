@@ -83,14 +83,13 @@
                 <div class="accordion" id="accordion">
                 <div class="card text-dark">
                     <div class="card-header" id="headingOne">
-                        <a href="#" class="btn btn-link btn-lg" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">Parameters<span class="badge badge-info" data-toggle="tooltip" data-placement="right" title="Used only on-the-go in the individual comparaison between one couple of linked focus graphs. This parameter will be replaced during the global analysis with the one on the its dashboard.">?</span></a>
+                        <a href="#" class="btn btn-link btn-lg" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">Parameters <span class="badge badge-info" data-toggle="tooltip" data-placement="right" title="Please select the different weights and threshold you want to evaluate the contextual uncertainty. Please keep in mind that the analysis is cached and you can still annotate your data using different uncertainty outcome.">?</span></a>
                     </div>
 
                     <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordion">
                         <div class="card-body">
-                            
                             <div class="form-group row mr-0">
-                                <label for="objSymMethod" class="col-sm-4 col-form-label">Object Similarity</label>
+                                <label for="objSymMethod" class="col-sm-4 col-form-label">Obj. Sim.</label>
                                 <select id='objSymMethod' class="col-sm-8 form-control form-control-sm">
                                     <option value='default'>String equality</option>
                                     <option value='jaccard'>Jaccard (chars)</option>
@@ -102,87 +101,60 @@
                                 <label class="col-sm-4 col-form-label" for="localTau">Local Obj-Tau</label>
                                 <input class="col-sm-8 form-control form-control-sm" type="number" id="localTau" value="0.5" min="0" max="1" step="0.001" />
                             </div>
+                            <div class="form-group row mb-3 mr-0">
+                                <label class="col-sm-4 col-form-label" for="r1Tau">R1 Obj-Tau</label>
+                                <input class="col-sm-8 form-control form-control-sm" type="number" id="r1Tau" value="0.5" min="0" max="1" step="0.001" />
+                            </div>
+                            <div class="form-group row mb-3 mr-0">
+                                <label class="col-sm-4 col-form-label" for="localTau">Avg. Sem-Tau</label>
+                                <input class="col-sm-8 form-control form-control-sm" type="number" id="localTau" value="0.5" min="0" max="1" step="0.001" />
+                            </div>
+                            <div class="form-group row mb-3 mr-0">
+                                <label class="col-sm-4 col-form-label" for="localTau">Weights</label>
+                                <div class="form-row col-sm-8">
+                                    <div class="form-group col-md-6">
+                                        <label for="inputEmail4">R0</label>
+                                        <input class="form-control form-control-sm" type="number" id="weight0" value="0.25" min="0" max="1" step="0.001" />
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label for="inputPassword4">R1</label>
+                                        <input class="form-control form-control-sm" type="number" id="weight1" value="0.25" min="0" max="1" step="0.001" />
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label for="inputPassword4">R2</label>
+                                        <input class="form-control form-control-sm" type="number" id="weight2" value="0.25" min="0" max="1" step="0.001" />
+                                    </div>
+                                    <div class="form-group col-md-6">
+                                        <label for="inputPassword4">R3</label>
+                                        <input class="form-control form-control-sm" type="number" id="weight3" value="0.25" min="0" max="1" step="0.001" />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="card text-dark">
                     <div class="card-header" id="headingTwo">
-                        <a href="#" class="btn btn-link btn-lg" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">Complete Analysis <span class="badge badge-info" data-toggle="tooltip" data-placement="right" title="Used only on-the-go in the individual comparaison between one couple of linked focus graphs. This parameter will be replaced during the global analysis with the one on the its dashboard.">?</span></a>
+                        <a href="#" class="btn btn-link btn-lg" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">Export format <span class="badge badge-info" data-toggle="tooltip" data-placement="right" title="Choose your export format. Whether you want your data in RDF/XML, JSON-LD, TURTLE/TRIG, etc.">?</span></a>
                     </div>
 
                     <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordion">
                         <div class="card-body">
-                            <div class="input-group mb-3 complete">
+                            <div class="input-group mb-3">
                                 <div class="input-group-prepend">
-                                    <label class="input-group-text text-light bg-dark" for="objSymMethodC">Method</label>
+                                    <label class="input-group-text text-light bg-dark" for="objSymMethodC">Format</label>
                                 </div>
                                 <select class="custom-select" id="objSymMethodC">
-                                    <option value='default'>String equality</option>
-                                    <option value='jaccard'>Jaccard (chars)</option>
-                                    <option value='jaccard-word'>Jaccard (Words)</option>
-                                    <option value='jaro-winkler'>Jaro-Winkler</option>
+                                    <option value='n3'>N3 (reified)</option>
+                                    <option value='turtle'>Turtle (named graphs) </option>
+                                    <option value='rdfxml'>RDF/XML (reified)</option>
                                 </select>
                             </div>
-                            <div class="parameters" style="<?php echo (!file_exists("results/" . $_REQUEST['f'] . "/default/feat.json"))?"display:none;":"";?>">
-                                <div class="btn-group d-flex mb-3" role="group" aria-label="Basic example">
-                                    <button class='loadResult btn btn-secondary'>load Results <span class="spnn spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display:none;"></span>
-                                        <span class="spnn sr-only" style="display:none;">Loading...</span>
-                                    </button>
-                                    <button class='loadAnalysis btn btn-info'>load Analysis <span class="spnn spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display:none;"></span>
-                                        <span class="spnn sr-only" style="display:none;">Loading...</span>
-                                    </button>
-                                </div>
-                                <div class="input-group mb-3">
-                                    <div class="input-group-prepend">
-                                        <label class="input-group-text" for="tau_l">Obj. threshold</label>
-                                    </div>
-                                    <select class="custom-select up" id="tau_l">
-                                        <option value='0'>0</option>
-                                        <option value='0.25'>0.25</option>
-                                        <option value='0.5'>0.5</option>
-                                        <option value='0.75'>0.75</option>
-                                    </select>
-                                </div>
-                                <div class="input-group mb-3">
-                                    <div class="input-group-prepend">
-                                        <label class="input-group-text" for="tau_g">R1. threshold</label>
-                                    </div>
-                                    <select class="custom-select up" id="tau_g">
-                                        <option value='0'>0</option>
-                                        <option value='0.25'>0.25</option>
-                                        <option value='0.5'>0.5</option>
-                                        <option value='0.75'>0.75</option>
-                                    </select>
-                                </div>
-                                <div class="input-group mb-3">
-                                    <div class="input-group-prepend">
-                                        <label class="input-group-text" for="w_val">Weight for value</label>
-                                    </div>
-                                    <select class="custom-select up" id="w_val">
-                                        <option value='0'>0</option>
-                                        <option value='0.25'>0.25</option>
-                                        <option value='0.5'>0.5</option>
-                                        <option value='0.75'>0.75</option>
-                                        <option value='1'>1</option>
-                                    </select>
-                                </div>
-                                <div class="input-group mb-3">
-                                    <div class="input-group-prepend">
-                                        <label class="input-group-text" for="key">N° of Sim. Links</label>
-                                    </div>
-                                    <select class="custom-select up" id="key">
-                                        <?php
-                                        for ($i = 0; $i < $fileCount; $i++) {
-                                            echo "<option value='{$i}'>" . ($i + 1) . "</option>";
-                                        }
-                                        ?>
-                                    </select>
+                            <div class="format">
+                                <div class="btn-group d-flex mb-3" role="group" aria-label="Export format">
+                                    <button class='exportResult btn btn-secondary'>Export data</button>
                                 </div>
                             </div>
-                            
-
-                            <button class='localAnalysis btn btn-primary' style="width:100%;<?php echo (file_exists("results/" . $_REQUEST['f'] . "/default/feat.json"))?"display:none;":"";?>" data-toggle="modal" data-target="#localAnalysis">Perform Complete Analysis</button>
-
                         </div>
                     </div>
                 </div>
@@ -190,30 +162,9 @@
 
         </div>
         <div class="col-sm-9 col-sm-offset-3">
-            <div class="modal fade" id="localAnalysis" tabindex="-1" role="dialog" aria-labelledby="localAnalysisLabel" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="localAnalysisLabel">Complete Analysis</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            ...
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="clearfix"></div>
             <div class="main"></div>
         </div>
     </div>
-    <button class='btn btn-lg btn-success' style="position: fixed; bottom: 20px; right: 20px;">Step 3: Annotate Data</button>
-
 
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
@@ -225,7 +176,7 @@
                 $('[data-toggle="tooltip"]').tooltip()
             })
 
-            $('.linkResult').on('click', function() {
+            $('.generateSample').on('click', function() {
                 var that = $(this);
                 var key = $(this).data("key");
                 currentAnchor = key;
@@ -239,7 +190,7 @@
                 });
             });
 
-            $('.localAnalysis').on('click', function() {
+            $('.exportResult').on('click', function() {
                 var that = $(this);
 
                 $.ajax({
@@ -254,75 +205,6 @@
                         $('.modal-body').html('<p>Analysis already done for this method and this set of focus graphs.</p><p>You may already explore it and visualize it using "Load Results" and "Load Analysis" buttons above.</p>')
                     }
                 });
-            });
-
-            $('.loadResult').on('click', function() {
-                var that = $(this);
-                that.attr("disabled", true);
-                $('.spnn').show();
-                location.hash = "";
-
-                $.ajax({
-                    type: "get",
-                    url: "assets/loader.php?key=" + $('#key').val() + "&tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethodC').val() + "&f=<?php echo isset($_REQUEST['f']) ? $_REQUEST['f'] : ""; ?>",
-                    success: function(response) {
-                        $('.main').html(response);
-                        $('.spnn').hide();
-                        that.removeAttr("disabled");
-                    }
-                });
-
-            });
-
-            $('.loadAnalysis').on('click', function() {
-                var that = $(this);
-                that.attr("disabled", true);
-                $('.spnn').show();
-                location.hash = "analyse";
-                $.ajax({
-                    type: "get",
-                    url: "assets/loader.php?analyse=0&tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethodC').val() + "&f=<?php echo isset($_REQUEST['f']) ? $_REQUEST['f'] : ""; ?>",
-                    success: function(response) {
-                        $('.main').html(response);
-                        $('.spnn').hide();
-                        that.removeAttr("disabled");
-                    }
-                });
-
-            });
-
-            $('.up').on('change', function() {
-                var that = $(this);
-                $('.spnn').show();
-
-                var context = (location.hash.substr(1) == "analyse") ? "analyse=0&" : ("key=" + $('#key').val() + "&");
-                $.ajax({
-                    type: "get",
-                    url: "assets/loader.php?" + context + "tau_l=" + $('#tau_l').val() + "&tau_g=" + $('#tau_g').val() + "&w_val=" + $('#w_val').val() + "&method=" + $('#objSymMethodC').val() + "&f=<?php echo isset($_REQUEST['f']) ? $_REQUEST['f'] : ""; ?>",
-                    success: function(response) {
-                        $('.main').html(response);
-                        $('.spnn').hide();
-                    }
-                });
-
-            });
-
-            $('#objSymMethodC').on('change', function() {
-                var that = $(this);
-
-                $.ajax({
-                    type: "HEAD",
-                    url: "results/<?php echo $_REQUEST['f'];?>/" + that.val() + "/feat.json",
-                    success: function(response) {
-                        $('.localAnalysis').hide()
-                        $('.parameters').show()
-                    } ,
-                    error: function(response){
-                        $('.localAnalysis').show()
-                        $('.parameters').hide()
-                    }
-                });
-
             });
         </script>
 
